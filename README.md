@@ -131,7 +131,7 @@ This software is currently in development. English and Japanese UI support are p
        └── ...（其他文件）
    ```
 
-   **第三方整合包：**
+   **第三方整合包的参考结构：**
    ```
    sd-webui-forge-neo/
    ├── webui/
