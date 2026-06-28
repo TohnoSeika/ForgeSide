@@ -72,7 +72,26 @@ This software is currently in development. English and Japanese UI support are p
 
 ## 🖼 截图
 
-（待补充）
+![首页](screenshots/01.jpg)
+*首页 — 启动入口、快捷文件夹、背景图*
+
+![图片参数](screenshots/02.jpg)
+*图片参数 — 拖入 PNG 自动解析生成信息*
+
+![图库](screenshots/03.jpg)
+*图库 — 缩略图浏览、多 tag 搜索*
+
+![控制台](screenshots/04.jpg)
+*控制台 — 实时输出日志、启动/终止 NEO*
+
+![版本管理](screenshots/05.jpg)
+*版本管理 — 查看版本、Release 记录、一键升级*
+
+![设置](screenshots/06.jpg)
+*设置 — 主题切换、启动模式、代理、提示音等*
+
+![关于](screenshots/07.jpg)
+*关于 — 版本信息、版权声明*
 
 ---
 
