@@ -6,6 +6,7 @@
 使用 WinForms + WebView2，界面用 HTML/CSS 渲染，粉色调主题，优雅而精致。
 
 <p style="color:#d2889e;">
+本软件目前仍在开发中，界面仅支持中文，计划未来支持英语和日语。<br>
 This software is currently in development. English and Japanese UI support are planned for future releases.<br>
 本ソフトウェアは現在開発中です。英語・日本語のUI対応を予定しています。
 </p>
