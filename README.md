@@ -120,6 +120,8 @@ This software is currently in development. English and Japanese UI support are p
    ```
    sd-webui-forge-neo/
    ├── webui/
+   ├── webui.bat
+   ├── webui-user.bat
    ├── ...（其他文件）
    └── ForgeSide/          ← 解压到这里
        ├── ForgeSide.exe
