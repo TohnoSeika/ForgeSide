@@ -3,7 +3,8 @@
 > Forge NEO 的辅助启动工具——漂亮、轻巧、顺手。
 
 一个 Windows 端 Forge NEO 启动器，提供图形化界面来管理和启动 Forge NEO，包含控制台输出、图片参数解析、图库浏览、版本管理等功能。  
-使用 WinForms + WebView2，界面用 HTML/CSS 渲染，粉色调主题，优雅而精致。
+使用 WinForms + WebView2，界面用 HTML/CSS 渲染，粉色调主题，优雅而精致。  
+English / 日本語 UI は現在開発中です。対応予定。（软件界面目前仅支持中文，计划未来支持英语和日语）
 
 ---
 
