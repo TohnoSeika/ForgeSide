@@ -117,11 +117,24 @@ This software is currently in development. English and Japanese UI support are p
 1. 安装 .NET 10 Desktop Runtime（如果已安装请跳过）
 2. 将 `ForgeSide` 文件夹完整解压到 Forge NEO 根目录下：
 
+   **官方版：**
+   ```
+   sd-webui-forge-neo/
+   ├── models/
+   ├── outputs/
+   ├── webui.bat
+   ├── webui-user.bat
+   ├── ...（其他文件）
+   └── ForgeSide/          ← 解压到这里
+       ├── ForgeSide.exe
+       ├── forge_side_ui.html
+       └── ...（其他文件）
+   ```
+
+   **第三方整合包：**
    ```
    sd-webui-forge-neo/
    ├── webui/
-   ├── webui.bat
-   ├── webui-user.bat
    ├── ...（其他文件）
    └── ForgeSide/          ← 解压到这里
        ├── ForgeSide.exe
