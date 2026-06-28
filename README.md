@@ -16,7 +16,7 @@ This software is currently in development. English and Japanese UI support are p
 
 ### 🚀 启动与管理
 - **一键启动 Forge NEO** —— 无需手动敲命令，点击即可启动
-- **三种启动模式** —— 支持 SDP 模式（兼容性优先，禁用加速）、Sage 模式（启用 SageAttention 加速）、标准模式（仅启动 webui.bat）
+- **三种启动模式** —— 支持 SDP 模式（兼容性优先，禁用加速）、Sage 模式（启用 SageAttention 加速）、标准模式（仅启动 webui.bat）。该功能尚不完善，还在测试中
 - **启动方式代码已内置** —— 不再依赖外部脚本，启动逻辑由 ForgeSide 直接控制
 - **进程守护** —— 运行时关闭窗口需要二次确认，防止误关闭正在运行的 NEO 进程
 
