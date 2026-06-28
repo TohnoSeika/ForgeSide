@@ -2,7 +2,7 @@
 
 > Forge NEO 的辅助启动工具——漂亮、轻巧、顺手。
 
-一个 Windows 端 Forge NEO 启动器，提供图形化界面来管理和启动 Forge NEO，包含控制台输出、图片参数解析、图库浏览、版本管理等功能。  
+一个 Windows 端 [Forge NEO](https://github.com/Haoming02/sd-webui-forge-classic/) 启动器，提供图形化界面来管理和启动 Forge NEO，包含控制台输出、图片参数解析、图库浏览、版本管理等功能。  
 使用 WinForms + WebView2，界面用 HTML/CSS 渲染，粉色调主题，优雅而精致。
 
 <p style="color:#d2889e;">
@@ -115,7 +115,7 @@ This software is currently in development. English and Japanese UI support are p
 
 ### V1.3
 
-- 🏗️ 增加了对 Forge NEO 官方包（GitHub 版）的支持
+- 🏗️ 增加了对 [Forge NEO 官方包](https://github.com/Haoming02/sd-webui-forge-classic/)（GitHub 版）的支持
 - 📦 添加版本管理功能，可以从 GitHub 查看、升级和切换 Forge NEO 版本
 - 🔒 锁定图库位置为 Forge NEO 输出文件夹，不再支持自定义图库文件夹
 - 🖼️ 增加双击图库中图片用默认图片查看器打开
