@@ -49,7 +49,7 @@ This software is currently in development. English and Japanese UI support are p
 - 自动检测本地 Forge NEO 版本，从 GitHub 获取最新 Release 信息
 - 查看版本发布记录与更新说明
 - 一键升级/切换/回退到指定版本（通过 Git tag）
-- 同时支持第三方包版本（含 `webui/` 目录）和官方 GitHub 版
+- 同时支持第三方包版本（含 `webui/` 目录）和[官方 GitHub 版](https://github.com/Haoming02/sd-webui-forge-classic/)
 
 ### 🌐 代理支持
 - 内置 HTTP 代理设置，支持开关与自定义代理地址
