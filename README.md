@@ -12,6 +12,14 @@ This software is currently in development. English and Japanese UI support are p
 
 ---
 
+<p style="color:#d2889e;">
+ForgeSide 仅支持启动和管理 <a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge NEO</a>，不支持 ComfyUI / Forge / SD WebUI A1111 / Fooocus<br>
+ForgeSide only supports launching and managing <a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge NEO</a>. It does not support ComfyUI, Forge, SD WebUI A1111, or Fooocus.<br>
+ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge NEO</a>の起動と管理のみをサポートしています。ComfyUI、Forge、SD WebUI A1111、Fooocusはサポートしていません。
+</p>
+
+---
+
 ## ✨ 特性
 
 ### 🚀 启动与管理
