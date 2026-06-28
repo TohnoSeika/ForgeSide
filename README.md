@@ -110,27 +110,6 @@ This software is currently in development. English and Japanese UI support are p
 
 3. 双击 `ForgeSide.exe` 即可运行
 
-## 📁 部署文件夹结构
-
-```
-ForgeSide/
-├── ForgeSide_src/              # 源码目录
-│   ├── MainForm.cs            # 主窗口（窗口管理、进程控制、图片解析、图库等）
-│   ├── BridgeHost.cs          # JS ↔ C# 桥接接口
-│   ├── ProcessManager.cs      # Forge NEO 进程管理
-│   ├── PngParser.cs           # PNG 图片参数解析
-│   ├── AppSettings.cs         # 配置持久化
-│   ├── ThemeColors.cs         # 主题色彩配置
-│   ├── ThumbnailCache.cs      # 图库缩略图缓存
-│   ├── forge_side_ui.html     # UI 界面（HTML/CSS/JS，约 2800 行）
-│   ├── sync.ps1               # 编译 + 同步脚本
-│   └── dist/                  # 纯净打包输出
-│       └── ForgeSide/         # ← 直接压缩此文件夹即可分发
-├── ForgeSide/                  # 第三方包运行目录
-└── README.md                   # 本文件
-```
-
----
 
 ## 📋 更新记录
 
