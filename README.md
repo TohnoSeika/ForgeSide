@@ -155,7 +155,7 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## 📋 更新记录
 
-### V1.3
+### V1.4
 
 - 🏗️ 增加了对 [Forge NEO 官方包](https://github.com/Haoming02/sd-webui-forge-classic/)（GitHub 版）的支持
 - 📦 添加版本管理功能，可以从 GitHub 查看、升级和切换 Forge NEO 版本

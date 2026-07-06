@@ -810,7 +810,7 @@
 
 <div class="titlebar" id="titlebar">
   <div class="logo"><img src="" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
-  <h1>ForgeSide V1.3</h1>
+  <h1>ForgeSide V1.4</h1>
   <span class="env-tag">NEO 已识别</span>
   <div class="win-ctrls">
     <button class="win-btn" onclick="bridge('minimize')" title="最小化">
@@ -1012,16 +1012,22 @@
     </div>
 
     <div class="sg">
-      <div class="sgt">启动模式</div>
-      <div class="sr">
-        <span class="sl">启动方式</span>
-        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()">
-          <option value="sdp">SDP 模式（兼容性优先，禁用加速）</option>
-          <option value="sage">Sage 模式（启用 SageAttention 加速）</option>
-          <option value="standard">标准模式（仅启动 webui.bat）</option>
+      <div class="sgt">启动设置</div>
+      <div class="sr" style="gap:16px;">
+        <span class="sl">启动模式</span>
+        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
+          <option value="sdp">SDP（兼容性优先，禁用加速）</option>
+          <option value="sage">Sage（启用 SageAttention 加速）</option>
+          <option value="standard">标准</option>
+        </select>
+        <span class="sl" style="margin-left:4px;">启动引擎</span>
+        <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()" style="flex:1;">
+          <option value="auto">自动（优先直接启动）</option>
+          <option value="direct">直接启动（python launch.py）</option>
+          <option value="bat">Bat 方式（webui.bat）</option>
         </select>
       </div>
-      <div class="sh">切换后点击「启动 Forge NEO」将使用对应的启动参数 <span style="color:var(--accent);font-weight:470;">— 该功能尚不完善，还在测试中</span></div>
+      <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
     </div>
 
     <div class="sg">
@@ -1106,7 +1112,7 @@
       <div class="about-row">
         <span class="about-icon">✦</span>
         <span class="about-title">ForgeSide</span>
-        <span class="about-version">V1.3</span>
+        <span class="about-version">V1.4</span>
       </div>
       <div class="about-line">本软件为免费软件，不会收取任何费用</div>
       <div class="about-line">Developed by <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a><a class="github-icon" href="https://github.com/TohnoSeika" title="GitHub"></a></div>
@@ -1449,6 +1455,24 @@
     bridge('saveSetting', JSON.stringify({ key: 'launchMode', value: mode }));
     settings.launchMode = mode;
     updateLaunchHint();
+  }
+
+  function onLaunchMethodChange() {
+    const method = document.getElementById('launchMethod').value;
+    bridge('saveSetting', JSON.stringify({ key: 'launchMethod', value: method }));
+    settings.launchMethod = method;
+    updateLaunchMethodHint();
+  }
+
+  function updateLaunchMethodHint() {
+    const raw = settings.launchMethod || 'auto';
+    const labels = { auto: '自动', direct: '直接启动', bat: 'Bat 方式' };
+    const method = labels[raw] || '自动';
+    const hint = document.getElementById('launchMethodHint');
+    hint.textContent = method + '模式：'
+      + (raw === 'auto' ? '优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式'
+         : raw === 'direct' ? '强制使用 python launch.py 直接启动'
+         : '强制使用 webui.bat 方式启动');
   }
 
   function updateLaunchHint() {
@@ -2378,6 +2402,8 @@
       forgeSide_onSoundPicked(settings.notificationSoundPath);
     }
     document.getElementById('launchMode').value = settings.launchMode || 'sdp';
+    document.getElementById('launchMethod').value = settings.launchMethod || 'auto';
+    updateLaunchMethodHint();
     document.getElementById('fileManager').value = settings.fileManager || 'explorer';
     document.getElementById('customFileManagerPath').value = settings.customFileManagerPath || '';
     updateFmPathRow();

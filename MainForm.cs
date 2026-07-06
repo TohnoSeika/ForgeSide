@@ -40,7 +40,7 @@ public class MainForm : Form
         Directory.CreateDirectory(Path.Combine(outputDir, "images"));
         Directory.CreateDirectory(Path.Combine(outputDir, "grids"));
 
-        Text = "ForgeSide V1.3";
+        Text = "ForgeSide V1.4";
         Size = new Size(840, 640);
         MinimumSize = new Size(840, 640);
         FormBorderStyle = FormBorderStyle.None;
@@ -1258,7 +1258,7 @@ public class MainForm : Form
                 };
             }
             using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(3) };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("ForgeSide/1.3");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ForgeSide/1.4");
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var response = client.GetAsync(url).Result;
             sw.Stop();
