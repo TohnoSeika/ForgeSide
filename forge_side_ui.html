@@ -1014,17 +1014,17 @@
     <div class="sg">
       <div class="sgt">启动设置</div>
       <div class="sr" style="gap:16px;">
-        <span class="sl">启动模式</span>
-        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
-          <option value="sdp">SDP（兼容性优先，禁用加速）</option>
-          <option value="sage">Sage（启用 SageAttention 加速）</option>
-          <option value="standard">标准</option>
-        </select>
-        <span class="sl" style="margin-left:4px;">启动引擎</span>
+        <span class="sl">启动引擎</span>
         <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()" style="flex:1;">
           <option value="auto">自动（优先直接启动）</option>
           <option value="direct">直接启动（python launch.py）</option>
           <option value="bat">Bat 方式（webui.bat）</option>
+        </select>
+        <span class="sl" style="margin-left:4px;">启动模式</span>
+        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
+          <option value="sdp">SDP（兼容性优先，禁用加速）</option>
+          <option value="sage">Sage（启用 SageAttention 加速）</option>
+          <option value="standard">标准</option>
         </select>
       </div>
       <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
@@ -1476,7 +1476,7 @@
   }
 
   function updateLaunchHint() {
-    const raw = settings.launchMode || 'sdp';
+    const raw = settings.launchMode || 'sage';
     const labels = { sdp: 'SDP', sage: 'Sage', standard: '标准' };
     const mode = labels[raw] || 'SDP';
     const hint = document.getElementById('launchModeHint');
@@ -2401,7 +2401,7 @@
     if (settings.notificationSoundPath) {
       forgeSide_onSoundPicked(settings.notificationSoundPath);
     }
-    document.getElementById('launchMode').value = settings.launchMode || 'sdp';
+    document.getElementById('launchMode').value = settings.launchMode || 'sage';
     document.getElementById('launchMethod').value = settings.launchMethod || 'auto';
     updateLaunchMethodHint();
     document.getElementById('fileManager').value = settings.fileManager || 'explorer';

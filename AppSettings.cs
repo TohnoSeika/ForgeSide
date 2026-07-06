@@ -10,7 +10,7 @@ public class AppSettings
     public string ProxyUrl         { get; set; } = "http://127.0.0.1:7897";
     public string FileManager      { get; set; } = "explorer";  // explorer | xyplorer | totalcmd | dopus | custom
     public string CustomFileManagerPath { get; set; } = "";
-    public string LaunchMode       { get; set; } = "sdp";       // sdp | sage | standard
+    public string LaunchMode       { get; set; } = "sage";      // sdp | sage | standard
     public string LaunchMethod     { get; set; } = "auto";      // auto | direct | bat
     public string BackgroundImage  { get; set; } = "";          // 空 = 默认占位
     public int    BackgroundZoom   { get; set; } = 100;         // 缩放百分比，100 = 原始
