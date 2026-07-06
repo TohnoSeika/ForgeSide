@@ -7,6 +7,9 @@ namespace ForgeSide;
 /// <summary>管理 Forge NEO 进程的启动与终止</summary>
 public partial class ProcessManager : IDisposable
 {
+    /// <summary>包类型——决定用哪种方式启动</summary>
+    enum ForgePackage { Unknown, ThirdParty, Official, Licyk }
+
     private Process? _neoProcess;
     private CancellationTokenSource? _cts;
     private string? _tempBatPath;
@@ -18,56 +21,153 @@ public partial class ProcessManager : IDisposable
     public event Action? OnExited;
     public event Action? OnImageGenerated;
 
-    /// <summary>启动 Forge NEO，根据启动模式动态生成 bat 内容</summary>
+    /// <summary>启动 Forge NEO——优先直接 python launch.py，不行再 fallback 到 bat 方式</summary>
     public void Start(string neoDir, string launchMode, bool proxyEnabled, string proxyUrl)
     {
         if (IsRunning) return;
 
         string neoRoot = neoDir.TrimEnd(Path.DirectorySeparatorChar) + "\\";
 
-        // 检测版本结构：第三方包有 system/environment.bat，官方版 webui.bat 在根目录
-        bool isThirdParty = File.Exists(Path.Combine(neoDir, "system", "environment.bat"));
-        bool isOfficial = File.Exists(Path.Combine(neoDir, "webui.bat"));
+        // ── 检测包类型 ──
+        var pkg = DetectPackage(neoRoot);
+        string webuiDir = FindWebuiDir(neoRoot);
+        string pythonExe = !string.IsNullOrEmpty(webuiDir) ? FindPythonExe(webuiDir, neoRoot) : "";
 
-        // 根据版本和模式构建 COMMANDLINE_ARGS
-        string extraArgs;
-        if (isOfficial)
+        bool canDirect = !string.IsNullOrEmpty(webuiDir)
+                      && File.Exists(Path.Combine(webuiDir, "launch.py"))
+                      && !string.IsNullOrEmpty(pythonExe);
+
+        OnOutput?.Invoke($"[ForgeSide] 检测到包类型: {pkg}");
+        if (canDirect)
+            OnOutput?.Invoke($"[ForgeSide] webui 目录: {webuiDir}，Python: {Path.GetFileName(pythonExe)}");
+
+        // ── 优先直接启动 ──
+        if (canDirect)
         {
-            // 官方版：通用参数，不含第三方包特有的路径和插件
-            extraArgs = "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory";
+            StartDirect(neoRoot, webuiDir, pythonExe, pkg, launchMode, proxyEnabled, proxyUrl);
+            return;
         }
-        else
+
+        // ── fallback：走 bat 方式 ──
+        OnOutput?.Invoke("[ForgeSide] 未检测到可直接启动的环境，切换到 bat 方式…");
+        StartViaBat(neoRoot, pkg, launchMode, proxyEnabled, proxyUrl);
+    }
+
+    // ═══════════════════════════════════════
+    //  方式 A：直接 python launch.py
+    // ═══════════════════════════════════════
+
+    /// <summary>直接用 Python 启动 launch.py，不依赖 bat 文件</summary>
+    private void StartDirect(string neoRoot, string webuiDir, string pythonExe, ForgePackage pkg, string launchMode, bool proxyEnabled, string proxyUrl)
+    {
+        string args = BuildLaunchArgs(pkg, launchMode);
+
+        var psi = new ProcessStartInfo
         {
-            // 第三方包：保留原有的模型路径和插件参数
-            extraArgs = "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory ^\r\n"
+            FileName = pythonExe,
+            Arguments = $"launch.py {args}",
+            WorkingDirectory = webuiDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        // 注入代理环境变量
+        if (proxyEnabled && !string.IsNullOrWhiteSpace(proxyUrl))
+        {
+            psi.Environment["HTTP_PROXY"]  = proxyUrl;
+            psi.Environment["HTTPS_PROXY"] = proxyUrl;
+            psi.Environment["ALL_PROXY"]   = proxyUrl;
+            psi.Environment["NO_PROXY"]    = "localhost,127.0.0.1";
+        }
+
+        psi.StandardOutputEncoding = Encoding.UTF8;
+        psi.StandardErrorEncoding  = Encoding.UTF8;
+
+        _neoProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
+
+        _neoProcess.OutputDataReceived += (_, e) => { if (e.Data != null) OnOutput?.Invoke(CleanLine(e.Data)); };
+        _neoProcess.ErrorDataReceived  += (_, e) => { if (e.Data != null) OnOutput?.Invoke(CleanLine(e.Data)); };
+        _neoProcess.Exited += (_, _) => OnExited?.Invoke();
+
+        _cts = new CancellationTokenSource();
+
+        _neoProcess.Start();
+        _neoProcess.BeginOutputReadLine();
+        _neoProcess.BeginErrorReadLine();
+
+        OnOutput?.Invoke($"[ForgeSide] 启动 Forge NEO ({launchMode.ToUpper()} 模式 / 直接启动)...");
+    }
+
+    /// <summary>构建 launch.py 命令行参数</summary>
+    private static string BuildLaunchArgs(ForgePackage pkg, string launchMode)
+    {
+        string args = "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory";
+
+        // 第三方包加额外的模型路径
+        if (pkg == ForgePackage.ThirdParty)
+        {
+            args += " --ckpt-dirs D:/sd-models/Checkpoint"
+                + " --ckpt-dirs D:/sd-models/diffusion_model"
+                + " --text-encoder-dirs D:/sd-models/text_encoder"
+                + " --lora-dirs D:/sd-models/Lora"
+                + " --vae-dirs D:/sd-models/VAE"
+                + " --ad-no-huggingface";
+        }
+
+        // 启动模式
+        args += launchMode.ToLowerInvariant() switch
+        {
+            "sdp" => " --disable-sage --disable-flash --disable-xformers",
+            "standard" => "",
+            _ => "", // sage 模式：不加禁用参数
+        };
+
+        return args;
+    }
+
+    // ═══════════════════════════════════════
+    //  方式 B：生成 bat → 调 webui.bat
+    // ═══════════════════════════════════════
+
+    /// <summary>通过生成临时 bat 调用 webui.bat 来启动（fallback）</summary>
+    private void StartViaBat(string neoRoot, ForgePackage pkg, string launchMode, bool proxyEnabled, string proxyUrl)
+    {
+        string neoDir = neoRoot.TrimEnd('\\');
+
+        // 根据包类型构建 COMMANDLINE_ARGS
+        string extraArgs = pkg == ForgePackage.Official
+            ? "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory"
+            : "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory ^\r\n"
                 + "\t--ckpt-dirs D:/sd-models/Checkpoint ^\r\n"
                 + "\t--ckpt-dirs D:/sd-models/diffusion_model ^\r\n"
                 + "\t--text-encoder-dirs D:/sd-models/text_encoder ^\r\n"
                 + "\t--lora-dirs D:/sd-models/Lora ^\r\n"
                 + "\t--vae-dirs D:/sd-models/VAE ^\r\n"
                 + "\t--ad-no-huggingface";
-        }
 
         string modeFlags = launchMode.ToLowerInvariant() switch
         {
             "sdp" => " --disable-sage --disable-flash --disable-xformers",
             "standard" => "",
-            _ => "" // sage 模式：不加禁用参数，保留 SageAttention
+            _ => "",
         };
 
-        // 动态生成 bat 内容（自适应两种结构）
+        // 动态生成 bat 内容
         string content;
+        bool isOfficial = pkg == ForgePackage.Official;
+        bool isThirdParty = pkg == ForgePackage.ThirdParty;
+
         if (isOfficial)
         {
-            // 官方版：webui.bat 在根目录，没有 system/environment.bat
-            // 读取 webui-user.bat 中的 PYTHON 路径设置
             string pythonPath = "";
             string userBat = Path.Combine(neoDir, "webui-user.bat");
             if (File.Exists(userBat))
             {
                 foreach (var line in File.ReadLines(userBat))
                 {
-                    var m = System.Text.RegularExpressions.Regex.Match(line, @"^set\s+PYTHON=(.+)$");
+                    var m = Regex.Match(line, @"^set\s+PYTHON=(.+)$");
                     if (m.Success) { pythonPath = m.Groups[1].Value.Trim(); break; }
                 }
             }
@@ -90,7 +190,6 @@ public partial class ProcessManager : IDisposable
         }
         else if (isThirdParty)
         {
-            // 第三方包：有 system/environment.bat，webui.bat 在 webui/ 里
             content = "@echo off\r\nchcp 65001 >nul\r\n"
                 + $"call \"{neoRoot}system\\environment.bat\"\r\n"
                 + $"cd /d \"{neoRoot}webui\"\r\n"
@@ -107,26 +206,28 @@ public partial class ProcessManager : IDisposable
         }
         else
         {
-            // 无法识别：直接尝试 webui.bat
+            // Licyk / Unknown：尝试 webui.bat
             content = "@echo off\r\nchcp 65001 >nul\r\n"
                 + $"cd /d \"{neoDir}\"\r\n"
                 + "call .\\webui.bat\r\n";
         }
+
         _tempBatPath = Path.Combine(Path.GetTempPath(), $"forgeside_{Guid.NewGuid():N}.bat");
         File.WriteAllText(_tempBatPath, content);
+
+        string workDir = isOfficial ? neoDir : Path.Combine(neoDir, "webui");
 
         var psi = new ProcessStartInfo
         {
             FileName = "cmd.exe",
             Arguments = $"/c \"\"{_tempBatPath}\"\"",
-            WorkingDirectory = isOfficial ? neoDir : Path.Combine(neoDir, "webui"),
+            WorkingDirectory = workDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
 
-        // 注入代理环境变量
         if (proxyEnabled && !string.IsNullOrWhiteSpace(proxyUrl))
         {
             psi.Environment["HTTP_PROXY"]  = proxyUrl;
@@ -155,15 +256,85 @@ public partial class ProcessManager : IDisposable
         _neoProcess.BeginOutputReadLine();
         _neoProcess.BeginErrorReadLine();
 
-        OnOutput?.Invoke($"[ForgeSide] 启动 Forge NEO ({launchMode.ToUpper()} 模式)...");
+        OnOutput?.Invoke($"[ForgeSide] 启动 Forge NEO ({launchMode.ToUpper()} 模式 / bat 方式)...");
     }
+
+    // ═══════════════════════════════════════
+    //  包类型检测
+    // ═══════════════════════════════════════
+
+    /// <summary>检测 NEO 包的类型，用于决定启动方式</summary>
+    private static ForgePackage DetectPackage(string neoRoot)
+    {
+        bool hasWebuiDir = Directory.Exists(Path.Combine(neoRoot, "webui"));
+        bool hasCoreDir   = Directory.Exists(Path.Combine(neoRoot, "core"));
+        bool hasSystemBat = File.Exists(Path.Combine(neoRoot, "system", "environment.bat"));
+        bool hasWebuiBat = File.Exists(Path.Combine(neoRoot, "webui.bat"));
+        bool hasHanamizuki = File.Exists(Path.Combine(neoRoot, "hanamizuki.bat"));
+        bool hasVenv     = Directory.Exists(Path.Combine(neoRoot, "venv"));
+        bool hasLaunchPy = File.Exists(Path.Combine(neoRoot, "launch.py"));
+
+        if (hasWebuiDir && hasSystemBat) return ForgePackage.ThirdParty;
+        if (hasWebuiBat || hasVenv || hasLaunchPy) return ForgePackage.Official;
+        if (hasCoreDir || hasHanamizuki) return ForgePackage.Licyk;
+        if (hasWebuiDir) return ForgePackage.ThirdParty;
+        return ForgePackage.Unknown;
+    }
+
+    /// <summary>找到 launch.py 所在的 webui 子目录</summary>
+    private static string FindWebuiDir(string neoRoot)
+    {
+        // 已知子目录
+        foreach (var sub in new[] { "webui", "core" })
+        {
+            string dir = Path.Combine(neoRoot, sub);
+            if (Directory.Exists(dir) && File.Exists(Path.Combine(dir, "launch.py")))
+                return dir;
+        }
+        // 根目录自身
+        if (File.Exists(Path.Combine(neoRoot, "launch.py")))
+            return neoRoot;
+        return "";
+    }
+
+    /// <summary>按优先级查找可用的 Python 路径</summary>
+    private static string FindPythonExe(string webuiDir, string neoRoot)
+    {
+        string[] candidates = [
+            Path.Combine(webuiDir, "venv", "Scripts", "python.exe"),
+            Path.Combine(webuiDir, "python", "python.exe"),
+            Path.Combine(neoRoot, "venv", "Scripts", "python.exe"),
+            Path.Combine(neoRoot, "python", "python.exe"),
+        ];
+        foreach (var c in candidates)
+        {
+            if (File.Exists(c)) return c;
+        }
+        return "python"; // 最后尝试系统 PATH
+    }
+
+    // ═══════════════════════════════════════
+    //  输出目录监控
+    // ═══════════════════════════════════════
 
     /// <summary>启动输出目录监控，新图片生成时触发 OnImageGenerated</summary>
     public void StartOutputWatcher(string neoDir)
     {
         StopOutputWatcher();
-        string outputDir = Path.Combine(neoDir, "webui", "output", "images");
-        if (!Directory.Exists(outputDir)) return;
+
+        // 自适应不同包结构的 output 目录
+        string[] candidates = [
+            Path.Combine(neoDir, "webui", "output", "images"),
+            Path.Combine(neoDir, "core",  "output", "images"),
+            Path.Combine(neoDir, "outputs"),
+            Path.Combine(neoDir, "output"),
+        ];
+        string outputDir = "";
+        foreach (var c in candidates)
+        {
+            if (Directory.Exists(c)) { outputDir = c; break; }
+        }
+        if (string.IsNullOrEmpty(outputDir)) return;
 
         _outputWatcher = new FileSystemWatcher(outputDir)
         {
@@ -174,7 +345,7 @@ public partial class ProcessManager : IDisposable
         _outputWatcher.Created += (_, _) => OnImageGenerated?.Invoke();
         _outputWatcher.Renamed += (_, e) =>
         {
-            if (e.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            if (e.Name?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true)
                 OnImageGenerated?.Invoke();
         };
     }
@@ -209,10 +380,8 @@ public partial class ProcessManager : IDisposable
     {
         if (string.IsNullOrEmpty(raw)) return raw;
 
-        // 去掉 ANSI 转义序列（颜色、光标控制等）
         var cleaned = AnsiRegex().Replace(raw, "");
 
-        // 处理回车更新的进度条：取最后一个 \r 后的内容
         int lastCR = cleaned.LastIndexOf('\r');
         if (lastCR >= 0)
             cleaned = cleaned[(lastCR + 1)..];

@@ -628,6 +628,14 @@ public class MainForm : Form
             // 官方版：webui.bat 在根目录
             if (File.Exists(Path.Combine(dir, "webui.bat")))
                 return dir;
+            // licyk 版：有 core/ 或 hanamizuki.bat
+            if (Directory.Exists(Path.Combine(dir, "core")))
+                return dir;
+            if (File.Exists(Path.Combine(dir, "hanamizuki.bat")))
+                return dir;
+            // 有 launch.py 也算
+            if (File.Exists(Path.Combine(dir, "launch.py")))
+                return dir;
             dir = Directory.GetParent(dir)?.FullName!;
         }
         return AppDomain.CurrentDomain.BaseDirectory; // 回退
