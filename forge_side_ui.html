@@ -1012,26 +1012,19 @@
     </div>
 
     <div class="sg">
-      <div class="sgt">启动模式</div>
-      <div class="sr">
-        <span class="sl">启动方式</span>
-        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()">
-          <option value="sdp">SDP 模式（兼容性优先，禁用加速）</option>
-          <option value="sage">Sage 模式（启用 SageAttention 加速）</option>
-          <option value="standard">标准模式（仅启动 webui.bat）</option>
+      <div class="sgt">启动设置</div>
+      <div class="sr" style="gap:16px;">
+        <span class="sl">启动模式</span>
+        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
+          <option value="sdp">SDP（兼容性优先，禁用加速）</option>
+          <option value="sage">Sage（启用 SageAttention 加速）</option>
+          <option value="standard">标准</option>
         </select>
-      </div>
-      <div class="sh">切换后点击「启动 Forge NEO」将使用对应的启动参数 <span style="color:var(--accent);font-weight:470;">— 该功能尚不完善，还在测试中</span></div>
-    </div>
-
-    <div class="sg">
-      <div class="sgt">启动引擎</div>
-      <div class="sr">
-        <span class="sl">启动方式</span>
-        <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()">
-          <option value="auto">自动（优先直接启动，失败则回退 bat）</option>
+        <span class="sl" style="margin-left:4px;">启动引擎</span>
+        <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()" style="flex:1;">
+          <option value="auto">自动（优先直接启动）</option>
           <option value="direct">直接启动（python launch.py）</option>
-          <option value="bat">Bat 方式（调用 webui.bat）</option>
+          <option value="bat">Bat 方式（webui.bat）</option>
         </select>
       </div>
       <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
