@@ -21,6 +21,9 @@ forgeside_*.bat
 
 # 旧版本存档
 ForgeSide_src_V1.1/
+
+# 旧设计文件
+ForgeNEO*
 ForgeSide_src_V1.2/
 Fin/
 Promotion/
