@@ -88,6 +88,20 @@ public partial class ProcessManager : IDisposable
             CreateNoWindow = true,
         };
 
+        // 注入第三方包需要的内置 Python 环境变量
+        if (pkg == ForgePackage.ThirdParty)
+        {
+            string sysDir = Path.Combine(neoRoot.TrimEnd('\\'), "system") + "\\";
+            string pythonDir = Path.Combine(sysDir, "python");
+            psi.Environment["SKIP_VENV"] = "1";
+            psi.Environment["HF_HOME"]   = Path.Combine(sysDir, "hf-cache");
+            psi.Environment["HF_ENDPOINT"] = "https://hf-mirror.com/";
+            // 把内置 Python 加到 PATH 开头
+            string newPath = $"{pythonDir};{Path.Combine(pythonDir, "Scripts")};" +
+                $"{Path.Combine(sysDir, "git", "bin")};%PATH%";
+            psi.Environment["PATH"] = newPath;
+        }
+
         // 注入代理环境变量
         if (proxyEnabled && !string.IsNullOrWhiteSpace(proxyUrl))
         {
@@ -316,9 +330,15 @@ public partial class ProcessManager : IDisposable
     private static string FindPythonExe(string webuiDir, string neoRoot)
     {
         string[] candidates = [
+            // 第三方包的内置 Python（有 system/environment.bat 的包）
+            Path.Combine(neoRoot, "system", "python", "python.exe"),
+            // webui 目录下的 venv
             Path.Combine(webuiDir, "venv", "Scripts", "python.exe"),
+            // webui 目录下的内置 Python
             Path.Combine(webuiDir, "python", "python.exe"),
+            // 根目录下的 venv
             Path.Combine(neoRoot, "venv", "Scripts", "python.exe"),
+            // 根目录下的内置 Python
             Path.Combine(neoRoot, "python", "python.exe"),
         ];
         foreach (var c in candidates)
