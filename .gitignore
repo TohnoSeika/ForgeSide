@@ -1,0 +1,20 @@
+# 编译输出
+**/bin/
+**/obj/
+**/publish/
+
+# WebView2 运行数据
+**/*.WebView2/
+**/EBWebView/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# 系统
+Thumbs.db
+.DS_Store
+
+# 临时 bat
+forgeside_*.bat
