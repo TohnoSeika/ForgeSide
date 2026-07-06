@@ -72,7 +72,7 @@ public partial class ProcessManager : IDisposable
                 }
             }
 
-            content = "@echo off\r\n"
+            content = "@echo off\r\nchcp 65001 >nul\r\n"
                 + $"cd /d \"{neoDir}\"\r\n";
             if (!string.IsNullOrEmpty(pythonPath))
                 content += $"set \"PYTHON={pythonPath}\"\r\n";
@@ -81,7 +81,7 @@ public partial class ProcessManager : IDisposable
 
             if (launchMode.ToLowerInvariant() == "standard")
             {
-                content = "@echo off\r\n"
+                content = "@echo off\r\nchcp 65001 >nul\r\n"
                     + $"cd /d \"{neoDir}\"\r\n";
                 if (!string.IsNullOrEmpty(pythonPath))
                     content += $"set \"PYTHON={pythonPath}\"\r\n";
@@ -91,7 +91,7 @@ public partial class ProcessManager : IDisposable
         else if (isThirdParty)
         {
             // 第三方包：有 system/environment.bat，webui.bat 在 webui/ 里
-            content = "@echo off\r\n"
+            content = "@echo off\r\nchcp 65001 >nul\r\n"
                 + $"call \"{neoRoot}system\\environment.bat\"\r\n"
                 + $"cd /d \"{neoRoot}webui\"\r\n"
                 + $"set COMMANDLINE_ARGS={extraArgs}{modeFlags}\r\n"
@@ -99,7 +99,7 @@ public partial class ProcessManager : IDisposable
 
             if (launchMode.ToLowerInvariant() == "standard")
             {
-                content = "@echo off\r\n"
+                content = "@echo off\r\nchcp 65001 >nul\r\n"
                     + $"call \"{neoRoot}system\\environment.bat\"\r\n"
                     + $"cd /d \"{neoRoot}webui\"\r\n"
                     + "call .\\webui.bat\r\n";
@@ -108,7 +108,7 @@ public partial class ProcessManager : IDisposable
         else
         {
             // 无法识别：直接尝试 webui.bat
-            content = "@echo off\r\n"
+            content = "@echo off\r\nchcp 65001 >nul\r\n"
                 + $"cd /d \"{neoDir}\"\r\n"
                 + "call .\\webui.bat\r\n";
         }
@@ -135,10 +135,9 @@ public partial class ProcessManager : IDisposable
             psi.Environment["NO_PROXY"]    = "localhost,127.0.0.1";
         }
 
-        // 使用系统 OEM 编码避免中文乱码
-        var oem = Encoding.GetEncoding(0);
-        psi.StandardOutputEncoding = oem;
-        psi.StandardErrorEncoding  = oem;
+        // bat 开头已切到 UTF-8 代码页（chcp 65001），用 UTF-8 读取避免乱码
+        psi.StandardOutputEncoding = Encoding.UTF8;
+        psi.StandardErrorEncoding  = Encoding.UTF8;
 
         _neoProcess = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
