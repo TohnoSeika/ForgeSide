@@ -419,7 +419,7 @@ public class MainForm : Form
         {
             string neoRoot = FindNeoRoot();
             PushConsole($"[ForgeSide] NEO 根目录: {neoRoot}", "info");
-            _procMgr.Start(neoRoot, _settings.LaunchMode, _settings.ProxyEnabled, _settings.ProxyUrl);
+            _procMgr.Start(neoRoot, _settings.LaunchMode, _settings.LaunchMethod, _settings.ProxyEnabled, _settings.ProxyUrl);
             _procMgr.StartOutputWatcher(neoRoot);
             _webView.CoreWebView2?.ExecuteScriptAsync("forgeSide_onStatus(true)");
         }
@@ -496,6 +496,7 @@ public class MainForm : Form
             fileManager = _settings.FileManager,
             customFileManagerPath = _settings.CustomFileManagerPath,
             launchMode = _settings.LaunchMode,
+            launchMethod = _settings.LaunchMethod,
             backgroundImage = bg,
             backgroundZoom = _settings.BackgroundZoom,
             backgroundPosX = _settings.BackgroundPosX,
@@ -515,6 +516,7 @@ public class MainForm : Form
             case "proxyUrl":        _settings.ProxyUrl = value; break;
             case "fileManager":     _settings.FileManager = value; break;
             case "launchMode":      _settings.LaunchMode = value; break;
+            case "launchMethod":    _settings.LaunchMethod = value; break;
             case "backgroundImage": _settings.BackgroundImage = value; break;
             case "backgroundZoom":  _settings.BackgroundZoom = int.TryParse(value, out var z) ? z : 100; break;
             case "backgroundPosX":  _settings.BackgroundPosX = float.TryParse(value, out var px) ? px : 50; break;

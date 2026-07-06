@@ -21,8 +21,8 @@ public partial class ProcessManager : IDisposable
     public event Action? OnExited;
     public event Action? OnImageGenerated;
 
-    /// <summary>启动 Forge NEO——优先直接 python launch.py，不行再 fallback 到 bat 方式</summary>
-    public void Start(string neoDir, string launchMode, bool proxyEnabled, string proxyUrl)
+    /// <summary>启动 Forge NEO —— 根据 launchMethod 选择启动方式</summary>
+    public void Start(string neoDir, string launchMode, string launchMethod, bool proxyEnabled, string proxyUrl)
     {
         if (IsRunning) return;
 
@@ -41,15 +41,30 @@ public partial class ProcessManager : IDisposable
         if (canDirect)
             OnOutput?.Invoke($"[ForgeSide] webui 目录: {webuiDir}，Python: {Path.GetFileName(pythonExe)}");
 
-        // ── 优先直接启动 ──
-        if (canDirect)
+        // ── 根据 launchMethod 选择路径 ──
+        switch (launchMethod.ToLowerInvariant())
         {
-            StartDirect(neoRoot, webuiDir, pythonExe, pkg, launchMode, proxyEnabled, proxyUrl);
-            return;
+            case "direct":
+                if (canDirect)
+                    goto tryDirect;
+                OnOutput?.Invoke("[ForgeSide] ⚠ 强制直接启动但找不到 Python/launch.py，切换到 bat 方式…");
+                goto fallback;
+
+            case "bat":
+                OnOutput?.Invoke("[ForgeSide] 使用 bat 方式（用户设定）…");
+                goto fallback;
+
+            default: // auto
+                if (canDirect)
+                    goto tryDirect;
+                goto fallback;
         }
 
-        // ── fallback：走 bat 方式 ──
-        OnOutput?.Invoke("[ForgeSide] 未检测到可直接启动的环境，切换到 bat 方式…");
+    tryDirect:
+        StartDirect(neoRoot, webuiDir, pythonExe, pkg, launchMode, proxyEnabled, proxyUrl);
+        return;
+
+    fallback:
         StartViaBat(neoRoot, pkg, launchMode, proxyEnabled, proxyUrl);
     }
 

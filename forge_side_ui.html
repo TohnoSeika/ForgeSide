@@ -1025,6 +1025,19 @@
     </div>
 
     <div class="sg">
+      <div class="sgt">启动引擎</div>
+      <div class="sr">
+        <span class="sl">启动方式</span>
+        <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()">
+          <option value="auto">自动（优先直接启动，失败则回退 bat）</option>
+          <option value="direct">直接启动（python launch.py）</option>
+          <option value="bat">Bat 方式（调用 webui.bat）</option>
+        </select>
+      </div>
+      <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
+    </div>
+
+    <div class="sg">
       <div class="sgt">生成提示</div>
       <div class="sr">
         <label class="sl">
@@ -1449,6 +1462,24 @@
     bridge('saveSetting', JSON.stringify({ key: 'launchMode', value: mode }));
     settings.launchMode = mode;
     updateLaunchHint();
+  }
+
+  function onLaunchMethodChange() {
+    const method = document.getElementById('launchMethod').value;
+    bridge('saveSetting', JSON.stringify({ key: 'launchMethod', value: method }));
+    settings.launchMethod = method;
+    updateLaunchMethodHint();
+  }
+
+  function updateLaunchMethodHint() {
+    const raw = settings.launchMethod || 'auto';
+    const labels = { auto: '自动', direct: '直接启动', bat: 'Bat 方式' };
+    const method = labels[raw] || '自动';
+    const hint = document.getElementById('launchMethodHint');
+    hint.textContent = method + '模式：'
+      + (raw === 'auto' ? '优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式'
+         : raw === 'direct' ? '强制使用 python launch.py 直接启动'
+         : '强制使用 webui.bat 方式启动');
   }
 
   function updateLaunchHint() {
@@ -2378,6 +2409,8 @@
       forgeSide_onSoundPicked(settings.notificationSoundPath);
     }
     document.getElementById('launchMode').value = settings.launchMode || 'sdp';
+    document.getElementById('launchMethod').value = settings.launchMethod || 'auto';
+    updateLaunchMethodHint();
     document.getElementById('fileManager').value = settings.fileManager || 'explorer';
     document.getElementById('customFileManagerPath').value = settings.customFileManagerPath || '';
     updateFmPathRow();
