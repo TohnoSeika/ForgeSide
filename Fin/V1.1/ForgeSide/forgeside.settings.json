@@ -1,0 +1,14 @@
+{
+  "IsDarkMode": false,
+  "ProxyEnabled": false,
+  "ProxyUrl": "http://127.0.0.1:7897",
+  "FileManager": "explorer",
+  "CustomFileManagerPath": "",
+  "LaunchMode": "sdp",
+  "BackgroundImage": "",
+  "BackgroundZoom": 100,
+  "BackgroundPosX": 50,
+  "BackgroundPosY": 50,
+  "NotificationSound": true,
+  "NotificationSoundPath": ""
+}

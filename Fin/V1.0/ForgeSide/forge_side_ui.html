@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* ═══════════════════════════════════════════════════════
+     ForgeSide UI —— 这是桃华帮 Minagi 写的哦
+     基于 WebView2，与 C# 后端通过 JS Bridge 通信
+     ═══════════════════════════════════════════════════════ */
+
+  :root {
+    --bg:            #f2eeea;
+    --surface:       #f9f7f4;
+    --card:          #fefefe;
+    --card-hover:    #fdfbf9;
+    --border:        #e6e0d8;
+    --border-light:  #efebe5;
+    --text:          #3b3530;
+    --text-secondary:#8b837b;
+    --text-muted:    #b8b0a6;
+    --accent:        #e0a0b8;
+    --accent-soft:   #f8eaf0;
+    --accent-deep:   #ce7e96;
+    --accent-glow:   rgba(224,160,184,0.22);
+    --shadow-xs:     0 1px 2px rgba(50,40,30,0.03);
+    --shadow-sm:     0 1px 3px rgba(50,40,30,0.04), 0 3px 10px rgba(50,40,30,0.05);
+    --shadow-md:     0 2px 6px rgba(50,40,30,0.04), 0 8px 24px rgba(50,40,30,0.07);
+    --shadow-lg:     0 4px 12px rgba(50,40,30,0.06), 0 16px 48px rgba(50,40,30,0.10);
+    --radius-sm:     12px;
+    --radius-md:     18px;
+    --radius-lg:     24px;
+    --radius-pill:   999px;
+    --font:          "Segoe UI", "Yu Gothic UI", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono:     "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
+    --console-bg:    #1b1916;
+    --console-text:  #d6d1cc;
+    --console-dim:   #69645d;
+    --console-error: #e8a0a0;
+    --console-warn:  #dfca8c;
+    --console-info:  #96b6de;
+    --console-green: #8ab89e;
+    --transition:    0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  [data-theme="dark"] {
+    --bg:            #181513;
+    --surface:       #1e1b18;
+    --card:          #25221f;
+    --card-hover:    #292622;
+    --border:        #37332e;
+    --border-light:  #302c27;
+    --text:          #e0dcd7;
+    --text-secondary:#9e9790;
+    --text-muted:    #6a645d;
+    --accent:        #d2889e;
+    --accent-soft:   #3c2831;
+    --accent-deep:   #b66e7e;
+    --accent-glow:   rgba(210,136,158,0.18);
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.18);
+    --shadow-sm:     0 1px 3px rgba(0,0,0,0.22), 0 3px 10px rgba(0,0,0,0.18);
+    --shadow-md:     0 2px 6px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.22);
+    --shadow-lg:     0 4px 12px rgba(0,0,0,0.30), 0 16px 48px rgba(0,0,0,0.28);
+    --console-bg:    #0e0d0b;
+    --console-text:  #c6c1bc;
+    --console-dim:   #5a5550;
+    --console-error: #d68686;
+    --console-warn:  #c6b676;
+    --console-info:  #7e9ec6;
+    --console-green: #76a086;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--text);
+    display: flex; flex-direction: column;
+    transition: background var(--transition), color var(--transition);
+    user-select: none;
+  }
+
+  /* ── 标题栏 ── */
+  .titlebar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px 9px 20px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    cursor: default;
+    transition: border-color var(--transition);
+    background: var(--surface);
+  }
+  .titlebar .logo {
+    width: 24px; height: 24px; border-radius: 8px;
+    background: linear-gradient(135deg, #e8b8c8, #d498ac);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #fff; flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(208,128,152,0.25);
+  }
+  .titlebar h1 { font-size: 13.5px; font-weight: 490; flex: 1; letter-spacing: 0.2px; }
+  .titlebar .env-tag {
+    font-size: 10px; padding: 3px 10px; border-radius: var(--radius-pill);
+    background: var(--accent-soft); color: var(--accent); font-weight: 500;
+    transition: background var(--transition), color var(--transition);
+  }
+  .win-ctrls { display: flex; gap: 4px; margin-left: 4px; }
+  .win-btn {
+    width: 28px; height: 26px; border-radius: 7px; border: none;
+    background: transparent; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 14px;
+    color: var(--text-secondary); transition: all var(--transition-fast);
+    font-family: var(--font); line-height: 1;
+  }
+  .win-btn:hover { background: var(--border-light); color: var(--text); transform: scale(1.04); }
+  .win-btn.close:hover { background: #e89090; color: #fff; }
+
+  /* ── Tab 栏 ── */
+  .tab-row {
+    display: flex; align-items: center; padding: 8px 18px 0;
+    flex-shrink: 0; background: var(--surface);
+  }
+  .tab-bar { display: flex; gap: 6px; }
+  .tab-btn {
+    padding: 7px 20px; border: none; background: transparent;
+    border-radius: var(--radius-pill); font-size: 12.5px;
+    font-family: var(--font); color: var(--text-secondary);
+    cursor: pointer; transition: all var(--transition-fast); font-weight: 450;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--border-light); }
+  .tab-btn.active { color: var(--accent); background: var(--accent-soft); font-weight: 510; box-shadow: 0 2px 8px var(--accent-glow); }
+
+  .status-group { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .status-indicator {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 480; color: var(--text-secondary);
+    padding: 5px 12px; border-radius: var(--radius-pill);
+    background: var(--card); border: 1px solid var(--border-light);
+    transition: all var(--transition); box-shadow: var(--shadow-xs);
+  }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #c0b0a0; flex-shrink: 0; transition: all var(--transition); }
+  .status-dot.live { background: #66b878; box-shadow: 0 0 10px rgba(102,184,120,0.50); animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 6px rgba(102,184,120,0.38); }
+    50%     { box-shadow: 0 0 16px rgba(102,184,120,0.70); }
+  }
+
+  .btn-stop-top {
+    padding: 5px 14px; border-radius: var(--radius-pill);
+    border: none; cursor: pointer; font-family: var(--font); font-size: 11px;
+    font-weight: 480; transition: all var(--transition-fast);
+    background: var(--border); color: var(--text-muted);
+    opacity: 0.5; pointer-events: none;
+  }
+  .btn-stop-top.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color: #fff; opacity: 1; pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(208,128,152,0.28);
+  }
+  .btn-stop-top.active:hover { box-shadow: 0 4px 14px rgba(208,128,152,0.40); transform: translateY(-1px); }
+
+  /* ── 内容区 ── */
+  .tab-content { display: none; flex: 1; overflow-y: auto; animation: fadeSlide 0.26s ease; }
+  .tab-content.active { display: flex; flex-direction: column; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ═══ Tab 1: 首页 ═══ */
+  .t1-layout { display: flex; flex-direction: column; flex: 1; padding: 18px 20px 16px; gap: 14px; }
+  .t1-top { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .t1-banner {
+    flex: 4; border-radius: var(--radius-md); background: var(--card);
+    border: 1.5px dashed var(--border); display: flex; align-items: center;
+    justify-content: center; transition: all var(--transition); overflow: hidden;
+    min-height: 120px; background-size: cover; background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+  }
+  .t1-banner.has-image { border-style: solid; border-color: var(--border); box-shadow: var(--shadow-sm); }
+  .t1-banner-placeholder { text-align: center; color: var(--text-muted); }
+  .t1-banner-placeholder .bi { font-size: 36px; margin-bottom: 6px; opacity: 0.22; }
+  .t1-banner-placeholder .bt { font-size: 12.5px; font-weight: 440; }
+
+  .t1-brand {
+    flex: 1; display: flex; align-items: center; padding: 0 14px;
+    min-height: 0;
+  }
+  .t1-brand-text .t1-name {
+    font-size: 30px; font-weight: 530; letter-spacing: 5px;
+    color: var(--text); line-height: 1.3; padding-bottom: 4px;
+    background: linear-gradient(135deg, var(--text) 60%, var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .t1-brand-text .t1-tagline {
+    font-size: 13px; font-weight: 420; color: var(--accent);
+    margin-top: 7px; letter-spacing: 0.5px;
+  }
+
+  .folder-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; flex-shrink: 0;
+  }
+  .f-card {
+    background: var(--card); border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); padding: 14px 8px; cursor: pointer;
+    transition: all var(--transition-fast); text-align: center;
+    box-shadow: var(--shadow-xs);
+  }
+  .f-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-2px); background: var(--card-hover); }
+  .f-card:active { transform: scale(0.96); transition: transform 0.08s ease; }
+  .f-card .fi { font-size: 20px; margin-bottom: 4px; transition: transform var(--transition-fast); }
+  .f-card:hover .fi { transform: scale(1.12); }
+  .f-card .fn { font-size: 12px; font-weight: 470; }
+  .f-card .fp { font-size: 10px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .f-card.launch-card {
+    background: linear-gradient(135deg, #e0a0b8, #ce7e96); border: none; color: #fff;
+    box-shadow: 0 3px 12px rgba(206,126,150,0.30);
+  }
+  .f-card.launch-card:hover { box-shadow: 0 6px 22px rgba(206,126,150,0.45); transform: translateY(-2px); background: linear-gradient(135deg, #e8aac2, #d4869e); }
+  .f-card.launch-card.running { background: #b0aca6; box-shadow: var(--shadow-xs); cursor: default; pointer-events: none; }
+  .f-card.launch-card .fi, .f-card.launch-card .fn, .f-card.launch-card .fp { color: #fff; }
+  .f-card.launch-card .fp { opacity: 0.72; }
+
+  /* ═══ Tab 2: 图片参数 ═══ */
+  .t2-layout { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: var(--radius-md);
+    padding: 32px 20px; text-align: center; cursor: pointer;
+    transition: all var(--transition); background: var(--card); flex-shrink: 0;
+    box-shadow: var(--shadow-xs);
+  }
+  .dropzone:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .dropzone .dz-icon { font-size: 30px; margin-bottom: 6px; opacity: 0.35; transition: opacity var(--transition); }
+  .dropzone:hover .dz-icon { opacity: 0.55; }
+  .dropzone .dz-text { font-size: 13px; color: var(--text-secondary); }
+  .dropzone .dz-sub  { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; }
+  .dropzone.has-image { padding: 14px 20px; border-style: solid; position: sticky; top: 0; z-index: 10; border-color: var(--accent); box-shadow: var(--shadow-md); }
+  .dropzone.has-image .dz-icon { display: none; }
+  .dropzone.has-image .dz-sub { display: none; }
+  .dropzone.has-image .dz-text { font-size: 11.5px; }
+
+  .img-preview {
+    flex-shrink: 0; display: none; align-items: center; justify-content: center;
+    max-height: 220px; border-radius: var(--radius-md); overflow: hidden;
+    background: var(--card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+  }
+  .img-preview.show { display: flex; }
+  .img-preview img {
+    max-width: 100%; max-height: 220px; object-fit: contain;
+  }
+
+  .param-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 1; align-content: start; overflow-y: auto; }
+  .param-item {
+    background: var(--card); border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); padding: 11px 13px;
+    position: relative; user-select: text; box-shadow: var(--shadow-xs);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .param-item:hover { border-color: var(--border); box-shadow: var(--shadow-sm); }
+  .param-item .pl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; font-weight: 510; user-select: none; }
+  .param-item .pv { font-size: 12.5px; font-weight: 450; word-break: break-word; line-height: 1.45; user-select: text; }
+  .param-item .copy-btn {
+    position: absolute; top: 7px; right: 7px; width: 24px; height: 24px;
+    border-radius: 6px; border: none; background: transparent; cursor: pointer;
+    font-size: 11px; color: var(--text-muted); display: flex;
+    align-items: center; justify-content: center;
+    transition: all var(--transition-fast); opacity: 0;
+  }
+  .param-item:hover .copy-btn { opacity: 1; }
+  .param-item .copy-btn:hover { background: var(--border-light); color: var(--accent); transform: scale(1.1); }
+  .param-item .copy-btn.copied { color: var(--console-green); opacity: 1; }
+
+  /* ═══ Tab 3: 控制台 ═══ */
+  .t3-layout { display: flex; flex-direction: column; flex: 1; padding: 10px 12px 12px; min-height: 0; position: relative; }
+  .console-box {
+    flex: 1; background: var(--console-bg); border-radius: var(--radius-md);
+    font-family: var(--font-mono); font-size: 13.5px; line-height: 1.65;
+    color: var(--console-text); overflow-y: auto; padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.04); min-height: 0;
+    user-select: text;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.18), var(--shadow-sm);
+  }
+  .console-line { white-space: pre-wrap; word-break: break-all; }
+  .console-line.error { color: var(--console-error); }
+  .console-line.warn  { color: var(--console-warn); }
+  .console-line.info  { color: var(--console-info); }
+  .console-line .ts { color: var(--console-dim); margin-right: 8px; font-size: 10px; user-select: none; }
+
+  .console-btn-row {
+    position: absolute; bottom: 24px; right: 24px;
+    display: flex; gap: 10px; z-index: 2;
+  }
+  .btn-console {
+    padding: 9px 22px; border-radius: var(--radius-pill);
+    border: none; cursor: pointer; font-family: var(--font); font-size: 12px;
+    font-weight: 500; transition: all var(--transition);
+    background: var(--border); color: var(--text-muted);
+    opacity: 0.5; pointer-events: none; letter-spacing: 0.3px;
+  }
+  .btn-console.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    color: #fff; opacity: 1; pointer-events: auto;
+    box-shadow: 0 2px 12px rgba(208,128,152,0.30), 0 1px 3px rgba(50,40,30,0.08);
+  }
+  .btn-console.active:hover { box-shadow: 0 4px 20px rgba(208,128,152,0.46), 0 2px 6px rgba(50,40,30,0.12); transform: translateY(-1.5px); }
+  .btn-console.active:active { transform: scale(0.96); transition: transform 0.08s ease; }
+  .btn-console.webui {
+    background: var(--card); color: var(--text-secondary);
+    border: 1px solid var(--border-light); box-shadow: var(--shadow-xs);
+    opacity: 0.55; pointer-events: none;
+  }
+  .btn-console.webui.active {
+    background: var(--card); color: var(--accent); border-color: var(--accent);
+    box-shadow: var(--shadow-sm); opacity: 1; pointer-events: auto;
+  }
+  .btn-console.webui.active:hover {
+    background: var(--accent-soft); border-color: var(--accent-deep);
+    color: var(--accent-deep); box-shadow: var(--shadow-md);
+    transform: translateY(-1.5px);
+  }
+
+  /* ═══ Tab 4: 设置 ═══ */
+  .t4-layout { padding: 18px 22px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  .sg {
+    background: var(--card); border: 1px solid var(--border-light);
+    border-radius: var(--radius-md); padding: 15px 20px; transition: all var(--transition);
+    box-shadow: var(--shadow-xs);
+  }
+  .sg:hover { box-shadow: var(--shadow-sm); }
+  .sg .sgt {
+    font-size: 10.5px; font-weight: 510; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;
+  }
+  .sr { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sl { font-size: 13px; font-weight: 460; display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+
+  .input-pill {
+    flex: 1; min-width: 180px; padding: 9px 15px; border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--text); background: var(--surface); outline: none;
+    transition: all var(--transition);
+  }
+  .input-pill:hover { border-color: var(--border); }
+  .input-pill:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: var(--card); }
+  .input-pill:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .select-pill {
+    padding: 9px 30px 9px 14px; border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-pill); font-family: var(--font); font-size: 12px;
+    color: var(--text); background: var(--surface); cursor: pointer;
+    appearance: none; transition: all var(--transition);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238a837b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .select-pill:hover { border-color: var(--border); }
+  .select-pill:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); outline: none; }
+
+  .toggle { position: relative; width: 40px; height: 23px; flex-shrink: 0; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle .ts {
+    position: absolute; inset: 0; background: #d5d0ca;
+    border-radius: var(--radius-pill); cursor: pointer; transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .toggle .ts:hover { background: #c8c2bb; }
+  .toggle .ts::after {
+    content:""; position: absolute; width: 17px; height: 17px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.06);
+  }
+  .toggle input:checked + .ts { background: var(--accent); }
+  .toggle input:checked + .ts:hover { background: var(--accent-deep); }
+  .toggle input:checked + .ts::after { transform: translateX(17px); }
+
+  .theme-cards { display: flex; gap: 12px; }
+  .tcard {
+    flex: 1; padding: 15px 18px; border-radius: var(--radius-sm);
+    border: 2px solid var(--border-light); cursor: pointer;
+    transition: all var(--transition); display: flex; align-items: center;
+    gap: 12px; background: var(--card); box-shadow: var(--shadow-xs);
+  }
+  .tcard:hover { border-color: var(--border); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .tcard:active { transform: scale(0.97); transition: transform 0.08s ease; }
+  .tcard.sel {
+    border-color: var(--accent); background: var(--accent-soft);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+  }
+  .tcard .td { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.08); box-shadow: inset 0 1px 3px rgba(0,0,0,0.06); }
+  .tcard .td.light { background: #faf9f6; }
+  .tcard .td.dark  { background: #262421; }
+  .tcard .tl { font-size: 13px; font-weight: 470; }
+  .tcard .tsub { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+
+  .bg-picker-row { display: flex; align-items: center; gap: 12px; }
+  .bg-preview {
+    width: 84px; height: 54px; border-radius: var(--radius-sm);
+    background: var(--surface); border: 1.5px solid var(--border-light);
+    background-size: cover; background-position: center; flex-shrink: 0;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color var(--transition-fast);
+  }
+  .btn-sm {
+    padding: 8px 18px; border-radius: var(--radius-pill); border: 1.5px solid var(--border-light);
+    background: var(--card); font-family: var(--font); font-size: 12px;
+    cursor: pointer; color: var(--text); transition: all var(--transition);
+    font-weight: 450; letter-spacing: 0.2px; box-shadow: var(--shadow-xs);
+  }
+  .btn-sm:hover { background: var(--card-hover); border-color: var(--border); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .btn-sm:active { transform: scale(0.95); transition: transform 0.08s ease; }
+  .btn-sm.accent { border-color: transparent; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+  .btn-sm.accent:hover { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 3px 12px rgba(208,128,152,0.28); }
+
+  /* ── 关于卡片 ── */
+  .about-card { text-align: left; padding: 22px 20px 18px; }
+  .about-icon { font-size: 20px; margin-bottom: 4px; color: var(--accent); }
+  .about-title { font-size: 15px; font-weight: 520; letter-spacing: 1.5px; }
+  .about-version { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+  .about-line { font-size: 11.5px; color: var(--text-secondary); margin-top: 6px; letter-spacing: 0.2px; }
+  .about-link { color: inherit; text-decoration: none; cursor: pointer; transition: opacity var(--transition-fast); }
+  .about-link:hover { opacity: 0.7; }
+  .about-minagi { color: var(--text-muted); font-style: italic; margin-top: 8px; }
+
+  .sh { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; letter-spacing: 0.15px; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d8d3cc; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #c5bfb8; }
+  [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #4a4540; }
+  [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #5e5852; }
+
+  .console-box::-webkit-scrollbar-thumb { background: #3e3a36; border-radius: 4px; }
+  .console-box::-webkit-scrollbar-thumb:hover { background: #55504b; }
+  .console-box::-webkit-scrollbar { width: 7px; }
+
+  /* ── 背景图编辑器模态 ── */
+  .bg-editor-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    animation: bgFadeIn 0.22s ease;
+  }
+  @keyframes bgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .bg-editor-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.58);
+    backdrop-filter: blur(4px);
+  }
+  .bg-editor-body {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; gap: 14px;
+    background: var(--card); border-radius: var(--radius-lg);
+    padding: 18px 20px; box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.06);
+    max-width: 92vw; max-height: 92vh;
+    animation: bgBodyIn 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes bgBodyIn { from { opacity: 0; transform: scale(0.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .bg-editor-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px; font-weight: 510; flex-shrink: 0;
+    color: var(--text);
+  }
+  .bg-editor-toolbar .spacer { flex: 1; }
+  .bg-editor-zoom-tag {
+    font-size: 11.5px; color: var(--text);
+    background: var(--surface); padding: 4px 12px;
+    border-radius: var(--radius-pill); font-family: var(--font-mono);
+    min-width: 48px; text-align: center; border: 1px solid var(--border-light);
+    font-weight: 510;
+  }
+  .bg-editor-viewport {
+    width: 700px; height: 370px;
+    max-width: 84vw; max-height: 54vh;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--accent);
+    cursor: grab; overflow: hidden;
+    background-size: 100%; background-position: 50% 50%;
+    background-repeat: no-repeat; background-color: var(--bg);
+    position: relative; box-shadow: inset 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .bg-editor-viewport.no-image {
+    border-color: var(--border); cursor: default;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 13.5px;
+  }
+  .bg-editor-viewport.no-image .grid-overlay { display: none; }
+  .bg-editor-viewport.no-image .crosshair { display: none; }
+  .bg-editor-viewport:active { cursor: grabbing; }
+  .bg-editor-hint {
+    text-align: center; font-size: 11.5px; color: var(--text-muted); flex-shrink: 0;
+    letter-spacing: 0.2px;
+  }
+  .bg-editor-viewport .grid-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(128,128,128,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(128,128,128,0.07) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .bg-editor-viewport .crosshair {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 22px; height: 22px; pointer-events: none;
+  }
+  .bg-editor-viewport .crosshair::before,
+  .bg-editor-viewport .crosshair::after {
+    content: ''; position: absolute; background: rgba(224,160,184,0.55);
+  }
+  .bg-editor-viewport .crosshair::before {
+    top: 10px; left: 0; width: 22px; height: 2px;
+  }
+  .bg-editor-viewport .crosshair::after {
+    top: 0; left: 10px; width: 2px; height: 22px;
+  }
+  .bg-editor-btn {
+    padding: 7px 17px; border-radius: var(--radius-pill); border: 1.5px solid var(--border-light);
+    background: var(--card); font-family: var(--font); font-size: 12px;
+    cursor: pointer; color: var(--text); transition: all var(--transition);
+    font-weight: 450; box-shadow: var(--shadow-xs);
+  }
+  .bg-editor-btn:hover { background: var(--card-hover); border-color: var(--border); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+  .bg-editor-btn:active { transform: scale(0.94); transition: transform 0.08s ease; }
+  .bg-editor-btn.primary {
+    border-color: transparent; background: var(--accent-soft); color: var(--accent);
+    font-weight: 510;
+  }
+  .bg-editor-btn.primary:hover { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 3px 14px rgba(208,128,152,0.32); }
+</style>
+</head>
+<body>
+
+<div class="titlebar" id="titlebar">
+  <div class="logo"><img src="" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
+  <h1>ForgeSide</h1>
+  <span class="env-tag">NEO 已识别</span>
+  <div class="win-ctrls">
+    <button class="win-btn" onclick="bridge('minimize')">─</button>
+    <button class="win-btn close" onclick="bridge('close')">✕</button>
+  </div>
+</div>
+
+<div class="tab-row">
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="0">首页</button>
+    <button class="tab-btn" data-tab="1">图片参数</button>
+    <button class="tab-btn" data-tab="2">控制台</button>
+    <button class="tab-btn" data-tab="3">设置</button>
+  </div>
+  <div class="status-group">
+    <div class="status-indicator">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">未启动</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 1 ═══ -->
+<div class="tab-content active" id="tab-0">
+  <div class="t1-layout">
+    <div class="t1-top">
+      <div class="t1-banner" id="t1Banner">
+        <div class="t1-banner-placeholder" id="bannerPh">
+          <div class="bi">🖼️</div>
+          <div class="bt">背景图片区域</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">在「设置」中选择图片</div>
+        </div>
+      </div>
+      <div class="t1-brand">
+        <div class="t1-brand-text">
+          <div class="t1-name">ForgeSide</div>
+          <div class="t1-tagline">Minagi 在这里陪着你哦 ✿</div>
+        </div>
+      </div>
+    </div>
+    <div class="folder-grid">
+      <div class="f-card" onclick="bridge('openFolder','output')">
+        <div class="fi">📁</div><div class="fn">输出目录</div><div class="fp">webui/output/images</div>
+      </div>
+      <div class="f-card" onclick="bridge('openFolder','models')">
+        <div class="fi">🧩</div><div class="fn">模型</div><div class="fp">webui/models/Stable-diffusion</div>
+      </div>
+      <div class="f-card" onclick="bridge('openFolder','lora')">
+        <div class="fi">🎨</div><div class="fn">Lora</div><div class="fp">webui/models/Lora</div>
+      </div>
+      <div class="f-card" onclick="bridge('openFolder','root')">
+        <div class="fi">🏠</div><div class="fn">根目录</div><div class="fp">Forge NEO 根目录</div>
+      </div>
+      <div class="f-card launch-card" id="btnLaunch" onclick="bridge('launch')">
+        <div class="fi">▶</div>
+        <div class="fn">启动 Forge NEO</div>
+        <div class="fp" id="launchModeHint">SDP 模式</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 2 ═══ -->
+<div class="tab-content" id="tab-1">
+  <div class="t2-layout">
+    <div class="dropzone" id="dropzone" onclick="bridge('pickImage')">
+      <div class="dz-icon">🖼️</div>
+      <div class="dz-text">点击浏览图片，或拖拽到此处</div>
+      <div class="dz-sub">支持 WebUI / Forge / ComfyUI 生成的 PNG</div>
+    </div>
+    <div class="img-preview" id="imgPreview">
+      <img id="previewImg" src="" alt="预览" />
+    </div>
+    <div class="param-grid" id="paramGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ Tab 3 ═══ -->
+<div class="tab-content" id="tab-2">
+  <div class="t3-layout">
+    <div class="console-box" id="consoleBox">
+      <div class="console-line info"><span class="ts">--:--:--</span>ForgeSide 已就绪，等待启动 Forge NEO...</div>
+    </div>
+    <div class="console-btn-row">
+      <button class="btn-console webui" id="btnOpenWebui" onclick="bridge('openWebui')">打开 WebUI</button>
+      <button class="btn-console" id="btnStopConsole" onclick="bridge('stop')">终止 NEO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 4 ═══ -->
+<div class="tab-content" id="tab-3">
+  <div class="t4-layout">
+
+    <div class="sg">
+      <div class="sgt">外观</div>
+      <div class="theme-cards">
+        <div class="tcard sel" id="tcardLight" onclick="setTheme(false)">
+          <div class="td light"></div>
+          <div><div class="tl">亮色模式</div><div class="tsub">温暖、柔和的日间色调</div></div>
+        </div>
+        <div class="tcard" id="tcardDark" onclick="setTheme(true)">
+          <div class="td dark"></div>
+          <div><div class="tl">暗色模式</div><div class="tsub">深邃、沉浸的夜间色调</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt">启动模式</div>
+      <div class="sr">
+        <span class="sl">启动方式</span>
+        <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()">
+          <option value="sdp">SDP 模式 (Launch_ForgeNeo_SDP.bat)</option>
+          <option value="sage">Sage 模式 (Launch_ForgeNeo_Sage.bat)</option>
+        </select>
+      </div>
+      <div class="sh">切换后点击「启动 Forge NEO」时将执行对应的 bat 文件</div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt">生成提示</div>
+      <div class="sr">
+        <label class="sl">
+          <span class="toggle"><input type="checkbox" id="notificationToggle" onchange="onNotificationToggle()"><span class="ts"></span></span>
+          图片生成完毕时播放提示音
+        </label>
+      </div>
+      <div class="sr" style="margin-top:10px;">
+        <span class="sl">自定义音效</span>
+        <button class="btn-sm accent" onclick="bridge('pickSound')" id="btnPickSound">选择音频文件…</button>
+        <button class="btn-sm" onclick="resetSound()" id="btnResetSound" style="display:none;">恢复默认</button>
+      </div>
+      <div class="sh" id="notificationHint">开启 — 检测到 output 目录新增 PNG 时播放系统提示音</div>
+      <div class="sh" id="soundPathHint" style="display:none;color:var(--accent);"></div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt">代理服务器</div>
+      <div class="sr">
+        <label class="sl">
+          <span class="toggle"><input type="checkbox" id="proxyToggle" onchange="onProxyToggle()"><span class="ts"></span></span>
+          代理开关
+        </label>
+        <input type="text" class="input-pill" id="proxyUrl" value="http://127.0.0.1:7897" onchange="onSettingChange('proxyUrl')" placeholder="代理地址，如 http://127.0.0.1:7897" />
+      </div>
+      <div class="sh" id="proxyHint">关闭 — NEO 网络流量将直接连接</div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt">文件管理器</div>
+      <div class="sr">
+        <span class="sl">打开文件夹时使用</span>
+        <select class="select-pill" id="fileManager" onchange="onSettingChange('fileManager')">
+          <option value="explorer">资源管理器</option>
+          <option value="xyplorer">XYplorer</option>
+          <option value="totalcmd">Total Commander</option>
+          <option value="dopus">Directory Opus</option>
+          <option value="custom">自定义…</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt">首页背景图片</div>
+      <div class="bg-picker-row">
+        <div class="bg-preview" id="bgPreview"></div>
+        <div>
+          <button class="btn-sm accent" onclick="bridge('pickBg')">选择图片…</button>
+          <button class="btn-sm" onclick="openBgEditor()" style="margin-left:6px;" id="btnAdjustBg">调整位置</button>
+          <button class="btn-sm" onclick="clearBg()" style="margin-left:6px;">清除</button>
+        </div>
+      </div>
+      <div class="sh">选择图片后可点击「调整位置」在预览窗口中用鼠标拖拽和滚轮调整</div>
+    </div>
+
+    <div class="sg about-card">
+      <div class="about-icon">✦</div>
+      <div class="about-title">ForgeSide</div>
+      <div class="about-version">V1.0</div>
+      <div class="about-line">本软件为免费软件，不会收取任何费用</div>
+      <div class="about-line">Developed by <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a></div>
+      <div class="about-line about-minagi">im minagi , im everywhere</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ 背景图编辑器模态 ═══ -->
+<div class="bg-editor-overlay" id="bgEditor" style="display:none;">
+  <div class="bg-editor-backdrop" onclick="cancelBgEdit()"></div>
+  <div class="bg-editor-body">
+    <div class="bg-editor-toolbar">
+      <span>调整背景位置</span>
+      <span class="spacer"></span>
+      <span class="bg-editor-zoom-tag" id="bgEditZoomTag">100%</span>
+      <button class="bg-editor-btn" onclick="bgEditZoomOut()" title="缩小">−</button>
+      <button class="bg-editor-btn" onclick="bgEditZoomIn()" title="放大">+</button>
+      <button class="bg-editor-btn" onclick="resetBgEdit()">重置</button>
+      <button class="bg-editor-btn primary" onclick="confirmBgEdit()">✓ 确认</button>
+      <button class="bg-editor-btn" onclick="cancelBgEdit()">✕ 取消</button>
+    </div>
+    <div class="bg-editor-viewport no-image" id="bgEditViewport">
+      <div class="grid-overlay"></div>
+      <div class="crosshair" id="bgEditCrosshair"></div>
+    </div>
+    <div class="bg-editor-hint">🖱 拖拽移动图片 · 滚轮缩放 · 十字线标记视口中心</div>
+  </div>
+</div>
+
+<script>
+  // ═══ 拖放文件：通过 FileReader + base64 绕过 WebView2 安全限制 ═══
+  document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  document.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    // 优先用原生 path（某些 WebView2 版本支持）
+    if (file.path) { onImageFilePicked(file.path); return; }
+    // 降级：FileReader 读为 base64 传给 C# 解析
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const dataUrl = ev.target.result;
+      showImagePreview(dataUrl);  // 立即显示预览
+      const base64 = dataUrl.split(',')[1];
+      try {
+        const json = chrome.webview.hostObjects.sync.forgeSide.ReadImageFromBase64(base64);
+        if (json) {
+          try { showImageParams(JSON.parse(json)); }
+          catch(pe) { showImageParams({error: 'JSON解析失败: ' + pe.message}); }
+        }
+      } catch(ex) { showImageParams({error: '解析失败: ' + ex.message}); }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ═══ 与 C# 通信 ═══
+  function bridge(action, arg) {
+    try { chrome.webview.hostObjects.sync.forgeSide.HandleAction(action, arg || ''); }
+    catch(e) { console.error('Bridge error:', e); }
+  }
+
+  // ═══ C# → JS 回调 ═══
+  function forgeSide_onStatus(running) {
+    isRunning = running;
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    const launch = document.getElementById('btnLaunch');
+
+    dot.className = 'status-dot ' + (running ? 'live' : '');
+    txt.textContent = running ? '运行中' : '未启动';
+
+    launch.classList.toggle('running', running);
+    launch.querySelector('.fn').textContent = running ? '正在运行…' : '启动 Forge NEO';
+    updateLaunchHint();
+
+    document.getElementById('btnStopConsole').classList.toggle('active', running);
+    document.getElementById('btnOpenWebui').classList.toggle('active', running);
+  }
+
+  function forgeSide_onConsole(text, type) {
+    const box = document.getElementById('consoleBox');
+    const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    const div = document.createElement('div');
+    div.className = 'console-line ' + (type || '');
+    div.innerHTML = '<span class="ts">' + ts + '</span>' + escHtml(text);
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ═══ 状态 ═══
+  let isRunning = false;
+  let settings = {};
+
+  // ═══ Tab 切换 ═══
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      activeTab = parseInt(btn.dataset.tab);
+    });
+  });
+  let activeTab = 0;
+
+  // ═══ 主题切换 ═══
+  function setTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    document.getElementById('tcardLight').classList.toggle('sel', !dark);
+    document.getElementById('tcardDark').classList.toggle('sel', dark);
+    bridge('setTheme', dark ? 'true' : 'false');
+    settings.isDarkMode = dark;
+  }
+
+  // ═══ 标题栏拖动 ═══
+  document.getElementById('titlebar').addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.win-btn')) return;
+    bridge('drag');
+  });
+
+  // ═══ 提示音联动 ═══
+  function onNotificationToggle() {
+    const on = document.getElementById('notificationToggle').checked;
+    updateNotificationHint();
+    bridge('saveSetting', JSON.stringify({ key: 'notificationSound', value: on.toString() }));
+  }
+
+  function updateNotificationHint() {
+    const on = document.getElementById('notificationToggle').checked;
+    const hasCustom = settings.notificationSoundPath && settings.notificationSoundPath.length > 0;
+    let hint = '';
+    if (!on) hint = '关闭 — 不会播放提示音';
+    else if (hasCustom) hint = '<span style="color:var(--accent);">● 已开启</span> — 使用自定义音效';
+    else hint = '<span style="color:var(--console-green);">● 已开启</span> — 使用系统默认提示音';
+    document.getElementById('notificationHint').innerHTML = hint;
+  }
+
+  function forgeSide_onSoundPicked(filePath) {
+    settings.notificationSoundPath = filePath;
+    var fname = filePath.replace(/^.*[\\\/]/, '');
+    document.getElementById('soundPathHint').textContent = '当前音效：' + fname;
+    document.getElementById('soundPathHint').style.display = '';
+    document.getElementById('btnResetSound').style.display = '';
+    updateNotificationHint();
+  }
+
+  function resetSound() {
+    settings.notificationSoundPath = '';
+    document.getElementById('soundPathHint').style.display = 'none';
+    document.getElementById('soundPathHint').textContent = '';
+    document.getElementById('btnResetSound').style.display = 'none';
+    updateNotificationHint();
+    bridge('saveSetting', JSON.stringify({ key: 'resetSound', value: 'true' }));
+  }
+
+  // ═══ 代理联动 ═══
+  function onProxyToggle() {
+    const on = document.getElementById('proxyToggle').checked;
+    document.getElementById('proxyHint').innerHTML = on
+      ? '<span style="color:var(--console-green);">● 已开启</span> — NEO 网络流量将走代理，重启后生效'
+      : '关闭 — NEO 网络流量将直接连接';
+    bridge('saveSetting', JSON.stringify({ key: 'proxyEnabled', value: on.toString() }));
+  }
+
+  // ═══ 启动模式联动 ═══
+  function onLaunchModeChange() {
+    const mode = document.getElementById('launchMode').value;
+    bridge('saveSetting', JSON.stringify({ key: 'launchMode', value: mode }));
+    settings.launchMode = mode;
+    updateLaunchHint();
+  }
+
+  function updateLaunchHint() {
+    const mode = (settings.launchMode || 'sdp') === 'sage' ? 'Sage' : 'SDP';
+    const hint = document.getElementById('launchModeHint');
+    hint.textContent = isRunning ? `NEO 运行中 · ${mode}` : `${mode} 模式`;
+  }
+
+  // ═══ 通用设置变更 ═══
+  function onSettingChange(key) {
+    const el = document.getElementById(key);
+    const val = el.tagName === 'SELECT' ? el.value : el.value;
+    bridge('saveSetting', JSON.stringify({ key, value: val }));
+  }
+
+  // ═══ 背景图编辑器 ═══
+  let bgEditZoom, bgEditPosX, bgEditPosY;
+  let bgEditSaved = {};
+  let bgEditDragging = false;
+  let bgEditDragStart = {x:0, y:0};
+  let bgEditDragOrigPos = {x:0, y:0};
+
+  function openBgEditor() {
+    var path = settings.backgroundImage;
+    if (!path) return;
+    var vp = document.getElementById('bgEditViewport');
+    var url = 'file:///' + encodeURI(path.replace(/\\/g, '/')).replace(/#/g, '%23');
+    vp.style.backgroundImage = 'url(' + url + ')';
+    vp.classList.remove('no-image');
+
+    bgEditZoom = settings.backgroundZoom || 100;
+    // 确保至少有 10% 的拖拽空间，避免 100% 时某个方向完全无法移动
+    if (bgEditZoom <= 100) bgEditZoom = 110;
+    bgEditPosX = settings.backgroundPosX || 50;
+    bgEditPosY = settings.backgroundPosY || 50;
+    bgEditSaved = {zoom: bgEditZoom, posX: bgEditPosX, posY: bgEditPosY};
+
+    applyBgEditToViewport();
+    document.getElementById('bgEditor').style.display = 'flex';
+  }
+
+  function applyBgEditToViewport() {
+    var vp = document.getElementById('bgEditViewport');
+    vp.style.backgroundSize = bgEditZoom + '%';
+    vp.style.backgroundPosition = bgEditPosX + '% ' + bgEditPosY + '%';
+    document.getElementById('bgEditZoomTag').textContent = bgEditZoom + '%';
+  }
+
+  function bgEditZoomIn() {
+    bgEditZoom = Math.min(200, bgEditZoom + 5);
+    applyBgEditToViewport();
+  }
+
+  function bgEditZoomOut() {
+    bgEditZoom = Math.max(50, bgEditZoom - 5);
+    applyBgEditToViewport();
+  }
+
+  function resetBgEdit() {
+    bgEditZoom = 100;
+    bgEditPosX = 50;
+    bgEditPosY = 50;
+    applyBgEditToViewport();
+  }
+
+  function confirmBgEdit() {
+    settings.backgroundZoom = bgEditZoom;
+    settings.backgroundPosX = bgEditPosX;
+    settings.backgroundPosY = bgEditPosY;
+
+    bridge('saveSetting', JSON.stringify({key:'backgroundZoom', value: String(bgEditZoom)}));
+    bridge('saveSetting', JSON.stringify({key:'backgroundPosX', value: String(bgEditPosX)}));
+    bridge('saveSetting', JSON.stringify({key:'backgroundPosY', value: String(bgEditPosY)}));
+
+    var banner = document.getElementById('t1Banner');
+    banner.style.backgroundSize = bgEditZoom + '%';
+    banner.style.backgroundPosition = bgEditPosX + '% ' + bgEditPosY + '%';
+
+    document.getElementById('bgEditor').style.display = 'none';
+  }
+
+  function cancelBgEdit() {
+    bgEditZoom = bgEditSaved.zoom;
+    bgEditPosX = bgEditSaved.posX;
+    bgEditPosY = bgEditSaved.posY;
+    document.getElementById('bgEditor').style.display = 'none';
+  }
+
+  // ── 鼠标拖拽平移 ──
+  document.getElementById('bgEditViewport').addEventListener('mousedown', function(e) {
+    if (bgEditZoom <= 100) return;
+    bgEditDragging = true;
+    bgEditDragStart = {x: e.clientX, y: e.clientY};
+    bgEditDragOrigPos = {x: bgEditPosX, y: bgEditPosY};
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!bgEditDragging) return;
+    var vp = document.getElementById('bgEditViewport');
+    var rect = vp.getBoundingClientRect();
+    var Wv = rect.width, Hv = rect.height;
+    var Wi = Wv * bgEditZoom / 100;
+    var Hi = Hv * bgEditZoom / 100;
+    var rangeX = Wi - Wv;
+    var rangeY = Hi - Hv;
+
+    if (rangeX <= 0 && rangeY <= 0) return;
+
+    var dx = e.clientX - bgEditDragStart.x;
+    var dy = e.clientY - bgEditDragStart.y;
+
+    if (rangeX > 0) {
+      bgEditPosX = bgEditDragOrigPos.x - dx / rangeX * 25;
+      bgEditPosX = Math.max(0, Math.min(100, bgEditPosX));
+    }
+    if (rangeY > 0) {
+      bgEditPosY = bgEditDragOrigPos.y - dy / rangeY * 25;
+      bgEditPosY = Math.max(0, Math.min(100, bgEditPosY));
+    }
+    applyBgEditToViewport();
+  });
+
+  document.addEventListener('mouseup', function() {
+    bgEditDragging = false;
+  });
+
+  // ── 滚轮缩放 ──
+  document.getElementById('bgEditViewport').addEventListener('wheel', function(e) {
+    e.preventDefault();
+    if (e.deltaY > 0) bgEditZoom = Math.max(50, bgEditZoom - 5);
+    else bgEditZoom = Math.min(200, bgEditZoom + 5);
+    applyBgEditToViewport();
+  });
+
+  // ═══ 轮询 C# 端数据变更（完全绕过 ExecuteScriptAsync）═══
+  (function startPolling() {
+    let lastImageVer = 0;
+    let lastBgVer = 0;
+    let lastPickVer = 0;
+    setInterval(() => {
+      try {
+        const imgVer = chrome.webview.hostObjects.sync.forgeSide.GetImageVersion();
+        if (imgVer > lastImageVer) {
+          lastImageVer = imgVer;
+          const json = chrome.webview.hostObjects.sync.forgeSide.GetLastImageJson();
+          if (json && json.length > 0) {
+            try {
+              const data = JSON.parse(json);
+              showImageParams(data);
+            } catch(pe) {
+              showImageParams({error: 'JSON解析失败: ' + pe.message});
+            }
+          }
+        }
+        // 轮询图片路径（点击载入时 C# 返回文件路径用于预览）
+        const pickVer = chrome.webview.hostObjects.sync.forgeSide.GetPickedImageVersion();
+        if (pickVer > lastPickVer) {
+          lastPickVer = pickVer;
+          const path = chrome.webview.hostObjects.sync.forgeSide.GetLastPickedImagePath();
+          if (path) showImagePreview('file:///' + path.replace(/\\/g, '/'));
+        }
+        // 轮询背景图
+        const bgVer = chrome.webview.hostObjects.sync.forgeSide.GetBgVersion();
+        if (bgVer > lastBgVer) {
+          lastBgVer = bgVer;
+          const path = chrome.webview.hostObjects.sync.forgeSide.GetLastBgPath();
+          if (path) {
+            settings.backgroundImage = path;
+            settings.backgroundZoom = 100;
+            settings.backgroundPosX = 50;
+            settings.backgroundPosY = 50;
+            applyBgImage(path);
+            openBgEditor();
+          }
+        }
+      } catch(e) { forgeSide_onConsole('[诊断] 轮询异常: ' + e.message, 'error'); }
+    }, 250);
+  })();
+
+  // ── 显示图片预览 ──
+  function showImagePreview(src) {
+    var preview = document.getElementById('imgPreview');
+    var img = document.getElementById('previewImg');
+    img.src = src;
+    preview.classList.add('show');
+    // 拖放区变小
+    document.getElementById('dropzone').classList.add('has-image');
+  }
+
+  // ── 拖放回调（JS 侧直接拿到 path，通过 sync host object 读参数）──
+  function onImageFilePicked(path) {
+    if (!path) return;
+    showImagePreview('file:///' + path.replace(/\\/g, '/'));
+    try {
+      const json = chrome.webview.hostObjects.sync.forgeSide.ReadImageParams(path);
+      if (!json) return;
+      const data = JSON.parse(json);
+      if (data.error) { showImageParams(data); return; }
+      showImageParams(data);
+    } catch(e) { showImageParams({error: '解析失败: ' + e.message}); }
+  }
+
+  // ═══ 接收 C# 的消息 ═══
+  window.addEventListener('message', (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'imageParams') {
+        showImageParams(msg.data);
+      } else if (msg.type === 'bgImageSet') {
+        applyBgImage(msg.path);
+      }
+    } catch {}
+  });
+
+  // ═══ 展示图片参数 ═══
+  function showImageParams(data) {
+    var grid = document.getElementById('paramGrid');
+    grid.innerHTML = '';
+
+    if (data.error) {
+      grid.innerHTML = '<div style="color:var(--text-muted);padding:20px;">' + escHtml(data.error) + '</div>';
+      return;
+    }
+
+    var copyIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var checkIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    var html = '';
+    function add(label, value, extraClass) {
+      if (value == null || value === '') return;
+      var id = 'param-' + label.replace(/\s+/g, '-');
+      html += '<div class="param-item">'
+        + '<button class="copy-btn" data-target="' + id + '" title="复制">' + copyIcon + '</button>'
+        + '<div class="pl">' + escHtml(label) + '</div>'
+        + '<div class="pv' + (extraClass ? ' ' + extraClass : '') + '" id="' + id + '">' + escHtml(String(value)) + '</div>'
+        + '</div>';
+    }
+
+    add('Prompt', data.prompt);
+    add('Negative Prompt', data.negativePrompt);
+    if (data.seed != null && data.seed >= 0) add('Seed', data.seed);
+    if (data.steps > 0) add('Steps', data.steps);
+    if (data.cfgScale > 0) add('CFG Scale', Number(data.cfgScale).toFixed(1));
+    add('Sampler', data.sampler);
+    add('Model', data.model);
+    if (data.width > 0 && data.height > 0) add('Size', data.width + ' × ' + data.height);
+
+    // 兜底：如果没有任何字段，显示原始 JSON（带复制按钮）
+    if (!html) {
+      var rawId = 'param-raw-data';
+      html = '<div class="param-item">'
+        + '<button class="copy-btn" data-target="' + rawId + '" title="复制">' + copyIcon + '</button>'
+        + '<div class="pl">原始数据</div>'
+        + '<div class="pv" id="' + rawId + '" style="font-family:var(--font-mono);font-size:10px;max-height:200px;overflow-y:auto;">' + escHtml(JSON.stringify(data, null, 2)) + '</div>'
+        + '</div>';
+    }
+
+    grid.innerHTML = html;
+
+    // 委托复制按钮事件
+    grid.querySelectorAll('.copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var targetId = btn.getAttribute('data-target');
+        var el = document.getElementById(targetId);
+        if (!el) return;
+        var text = el.textContent || '';
+        navigator.clipboard.writeText(text).then(function() {
+          btn.innerHTML = checkIcon;
+          btn.classList.add('copied');
+          setTimeout(function() { btn.innerHTML = copyIcon; btn.classList.remove('copied'); }, 1200);
+        }).catch(function() {
+          var ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy'); document.body.removeChild(ta);
+          btn.innerHTML = checkIcon;
+          btn.classList.add('copied');
+          setTimeout(function() { btn.innerHTML = copyIcon; btn.classList.remove('copied'); }, 1200);
+        });
+      });
+    });
+  }
+
+  function applyBgImage(path) {
+    if (!path) return;
+    var url = 'file:///' + encodeURI(path.replace(/\\/g, '/')).replace(/#/g, '%23');
+    var banner = document.getElementById('t1Banner');
+    banner.style.backgroundImage = 'url(' + url + ')';
+    banner.style.backgroundSize = (settings.backgroundZoom || 100) + '%';
+    banner.style.backgroundPosition = (settings.backgroundPosX || 50) + '% ' + (settings.backgroundPosY || 50) + '%';
+    banner.classList.add('has-image');
+    var preview = document.getElementById('bgPreview');
+    if (preview) preview.style.backgroundImage = 'url(' + url + ')';
+    var ph = document.getElementById('bannerPh');
+    if (ph) ph.style.display = 'none';
+  }
+
+  function clearBg() {
+    settings.backgroundImage = '';
+    settings.backgroundZoom = 100;
+    settings.backgroundPosX = 50;
+    settings.backgroundPosY = 50;
+    document.getElementById('t1Banner').style.backgroundImage = '';
+    document.getElementById('t1Banner').style.backgroundSize = '';
+    document.getElementById('t1Banner').style.backgroundPosition = '';
+    document.getElementById('t1Banner').classList.remove('has-image');
+    document.getElementById('bgPreview').style.backgroundImage = '';
+    if (document.getElementById('bannerPh')) document.getElementById('bannerPh').style.display = '';
+    bridge('saveSetting', JSON.stringify({ key: 'backgroundImage', value: '' }));
+  }
+
+  // ═══ 初始化: 从 C# 加载设置 ═══
+  function init() {
+    try {
+      const json = chrome.webview.hostObjects.sync.forgeSide.GetSettingsJson();
+      settings = JSON.parse(json);
+      applySettings();
+    } catch(e) { setTimeout(init, 200); }
+  }
+
+  function applySettings() {
+    if (settings.isDarkMode) setTheme(true);
+    document.getElementById('proxyToggle').checked = settings.proxyEnabled;
+    document.getElementById('proxyUrl').value = settings.proxyUrl || 'http://127.0.0.1:7897';
+    onProxyToggle();
+    document.getElementById('notificationToggle').checked = settings.notificationSound !== false;
+    updateNotificationHint();
+    if (settings.notificationSoundPath) {
+      forgeSide_onSoundPicked(settings.notificationSoundPath);
+    }
+    document.getElementById('launchMode').value = settings.launchMode || 'sdp';
+    document.getElementById('fileManager').value = settings.fileManager || 'explorer';
+    updateLaunchHint();
+    if (settings.backgroundImage) {
+      applyBgImage(settings.backgroundImage);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

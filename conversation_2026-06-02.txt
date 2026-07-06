@@ -1,0 +1,80 @@
+ForgeSide 开发对话记录 —— 2026年6月2日
+═══════════════════════════════════════
+
+一、UI 全面美化
+─────────────────
+- 重构 CSS 变量系统：暖色主调（--accent: #e0a0b8），分层阴影（xs/sm/md/lg）
+- 控制台：字体 13.5px，内阴影，按钮分层阴影+按压动效
+- 设置页：卡片阴影+hover、输入框/下拉框 focus 光环、开关 40x23 流畅动画、主题卡片选中发光环
+- 按钮统一：圆角 pill、阴影、hover 上浮 -1px、按下缩放 0.96x
+- 背景编辑器：弹窗弹性入场动画、backdrop-filter 模糊、网格覆盖层、十字线优化
+- 滚动条：亮色/暗色主题分别定制，控制台专属暗色滚动条
+- 修复：ForgeSide 中 'g' 字被裁切 → line-height: 1.3 + padding-bottom: 4px
+
+二、快捷键、修复与调整
+─────────────────
+- 设置页标题「快捷管理 - 背景图片」→「首页背景图片」
+- 控制台「打开 WebUI」按钮无效 → 补上 pointer-events: auto
+- 首页标语改为「Minagi 在这里陪着你哦 ✿」
+
+三、软件图标
+─────────────────
+- 用户制作 512×512 ico.ico，应用于：
+  · exe 文件图标（ApplicationIcon 编译嵌入）
+  · 任务栏图标（Form.Icon 运行时加载）
+  · 窗口标题栏（WinForms 自动继承）
+  · UI 左上角 logo（ico → PNG → base64 注入）
+- WebView2 不支持 ico → 启动时从嵌入资源生成 PNG 数据 URI 注入 <img>
+- 最终方案：ico.ico 作为 EmbeddedResource，不在磁盘留文件
+
+四、图片生成提示音
+─────────────────
+- ProcessManager 增加 FileSystemWatcher 监控 webui/output/images/*.png
+- Created + Renamed 事件触发 OnImageGenerated
+- 只有启动监控后新增的文件才会触发，旧文件被忽略
+- 播放逻辑：优先用户自定义音频 → 失败回退系统提示音
+- NAudio 包支持 MP3/WAV/OGG/FLAC/M4A/AIFF 等格式
+- 设置页新增「生成提示」区域：开关 + 自定义音频选择 + 恢复默认按钮
+
+五、关于信息
+─────────────────
+- 设置页底部新增关于卡片（左对齐）：
+  · ForgeSide V1.0
+  · 本软件为免费软件，不会收取任何费用
+  · Developed by Tohno Seika（隐藏超链接 → https://space.bilibili.com/14816）
+  · im minagi , im everywhere
+
+六、项目结构整理
+─────────────────
+- 工程源码 → ForgeSide_src/
+- 程序运行 → ForgeSide_build/（将被重命名为 ForgeSide/）
+- NEO 根目录快捷方式 → ForgeSide.lnk
+- 运行时文件完全隐藏：图标嵌入 exe，logo 内存 base64 注入
+- publish 文件夹不包含任何图片文件
+
+七、关键技术决策
+─────────────────
+- C# ↔ JS 通信：chrome.webview.hostObjects.sync.forgeSide.*
+- 异步数据同步：JS 轮询 C# version counter（250ms 间隔）
+- NEO 启动：cmd.exe /c 执行临时 bat（替换 %~dp0 和 call webui.bat）
+- NEO 根目录查找：从 BaseDirectory 向上遍历找 webui/ 子目录
+- 提示音：NAudio AudioFileReader + WaveOutEvent
+
+八、项目文件清单（ForgeSide_src/）
+─────────────────
+- MainForm.cs         —— 主窗体、JS Bridge、核心逻辑
+- ProcessManager.cs   —— NEO 进程管理 + 输出目录监控
+- AppSettings.cs      —— JSON 配置持久化
+- PngParser.cs        —— PNG 元数据解析
+- BridgeHost.cs       —— WebView2 HostObject 桥接
+- ThemeColors.cs      —— 主题色定义
+- forge_side_ui.html  —— 完整前端界面（单文件 HTML/CSS/JS）
+- ForgeSide.csproj    —— 项目文件
+- ico.ico             —— 应用图标（嵌入资源）
+- Program.cs          —— 入口
+
+依赖包：
+- Microsoft.Web.WebView2 1.0.3967.48
+- NAudio 2.3.0
+
+目标框架：net10.0-windows

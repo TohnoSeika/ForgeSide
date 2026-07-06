@@ -1,0 +1,18 @@
+{
+  "IsDarkMode": true,
+  "ProxyEnabled": false,
+  "ProxyUrl": "http://127.0.0.1:7897",
+  "FileManager": "xyplorer",
+  "CustomFileManagerPath": "D:\\System Care\\XYplorer\\XYplorer.exe",
+  "LaunchMode": "sdp",
+  "BackgroundImage": "F:\\Programmes\\AICreater\\novelai-webui-aki\\sd-webui-forge-neo\\sd-webui-forge-neo\\webui\\output\\images\\00343-waiANIMA_v10-4069364529.png",
+  "BackgroundZoom": 120,
+  "BackgroundPosX": 52.12587,
+  "BackgroundPosY": 37.676056,
+  "NotificationSound": true,
+  "NotificationSoundPath": "F:\\Programmes\\AICreater\\novelai-webui-aki\\sd-webui-forge-neo\\sd-webui-forge-neo\\webui\\notification.mp3",
+  "GalleryFolders": [
+    "F:\\Programmes\\AICreater\\novelai-webui-aki\\sd-webui-forge-neo\\sd-webui-forge-neo\\webui\\output\\images"
+  ],
+  "ThumbnailSize": "small"
+}

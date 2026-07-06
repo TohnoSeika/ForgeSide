@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForgeSide — UI 原型 v3</title>
+<style>
+  /* ═══════════════════════════════════════════════════════
+     这个文件是桃华帮 Minagi 写的哦 —— v3
+     启动按钮变成了卡片、控制台更大了、标题栏加了窗口按钮
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── 亮色主题 ── */
+  :root {
+    --bg:            #f3f0ed;
+    --surface:       #fafaf8;
+    --card:          #ffffff;
+    --card-hover:    #fefdfc;
+    --border:        #e4dfd9;
+    --border-light:  #eeebe6;
+    --text:          #3d3833;
+    --text-secondary:#8a837b;
+    --text-muted:    #b5afa8;
+    --accent:        #e0a0b8;
+    --accent-soft:   #f6e8ef;
+    --accent-deep:   #d08098;
+    --accent-glow:   rgba(224,160,184,0.25);
+    --shadow-xs:     0 1px 2px rgba(50,40,35,0.04);
+    --shadow-sm:     0 2px 8px rgba(50,40,35,0.06);
+    --shadow-md:     0 6px 20px rgba(50,40,35,0.08);
+    --shadow-lg:     0 12px 36px rgba(50,40,35,0.10);
+    --radius-sm:     10px;
+    --radius-md:     16px;
+    --radius-lg:     22px;
+    --radius-pill:   999px;
+    --font:          "Segoe UI", "Yu Gothic UI", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono:     "Cascadia Code", "JetBrains Mono", "Consolas", "SF Mono", monospace;
+    --console-bg:    #1c1a18;
+    --console-text:  #d8d3ce;
+    --console-dim:   #6b6560;
+    --console-error: #e8a0a0;
+    --console-warn:  #e0cc90;
+    --console-info:  #98b8e0;
+    --console-green: #8cb8a0;
+    --transition:    0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── 暗色主题 ── */
+  [data-theme="dark"] {
+    --bg:            #1a1816;
+    --surface:       #1f1d1a;
+    --card:          #262421;
+    --card-hover:    #2a2824;
+    --border:        #383430;
+    --border-light:  #302d29;
+    --text:          #e0dcd7;
+    --text-secondary:#9e9790;
+    --text-muted:    #6b6560;
+    --accent:        #d4889e;
+    --accent-soft:   #3d2a33;
+    --accent-deep:   #b87080;
+    --accent-glow:   rgba(212,136,158,0.20);
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.15);
+    --shadow-sm:     0 2px 8px rgba(0,0,0,0.20);
+    --shadow-md:     0 6px 20px rgba(0,0,0,0.25);
+    --shadow-lg:     0 12px 36px rgba(0,0,0,0.30);
+    --console-bg:    #100f0e;
+    --console-text:  #c8c3be;
+    --console-dim:   #5c5752;
+    --console-error: #d88888;
+    --console-warn:  #c8b878;
+    --console-info:  #80a0c8;
+    --console-green: #78a088;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 32px 20px;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  /* ── 主窗口 ── */
+  .app-window {
+    width: 820px;
+    height: 620px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+    position: relative;
+  }
+
+  /* ── 标题栏 ── */
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 20px;
+    border-bottom: 1px solid var(--border-light);
+    user-select: none;
+    flex-shrink: 0;
+    transition: border-color var(--transition);
+  }
+  .titlebar .logo {
+    width: 24px; height: 24px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #e8b8c8, #d498ac);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #fff;
+    flex-shrink: 0;
+  }
+  .titlebar h1 {
+    font-size: 13.5px;
+    font-weight: 480;
+    letter-spacing: -0.1px;
+    flex: 1;
+  }
+  .titlebar .env-tag {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  /* 窗口控制按钮 */
+  .win-ctrls {
+    display: flex;
+    gap: 6px;
+    margin-left: 6px;
+  }
+  .win-btn {
+    width: 28px; height: 26px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+    font-family: var(--font);
+    line-height: 1;
+  }
+  .win-btn:hover { background: var(--border-light); color: var(--text); }
+  .win-btn.close:hover { background: #e89090; color: #fff; }
+
+  /* ── Tab 栏 + 状态指示 + 终止按钮 ── */
+  .tab-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px 0;
+    flex-shrink: 0;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+  }
+  .tab-btn {
+    padding: 7px 18px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-pill);
+    font-size: 12.5px;
+    font-family: var(--font);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-weight: 440;
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    background: rgba(128,128,128,0.06);
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 500;
+  }
+
+  /* 右侧状态组: 状态指示 + 终止按钮 */
+  .status-group {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 480;
+    color: var(--text-secondary);
+    padding: 5px 11px;
+    border-radius: var(--radius-pill);
+    background: var(--card);
+    border: 1px solid var(--border-light);
+    transition: all var(--transition);
+    white-space: nowrap;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #b0aba5;
+    flex-shrink: 0;
+  }
+  .status-dot.live {
+    background: #6db87d;
+    box-shadow: 0 0 8px rgba(109,184,125,0.45);
+    animation: statusPulse 2.4s ease-in-out infinite;
+  }
+  .status-dot.dead { background: #c0b0a0; }
+  @keyframes statusPulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(109,184,125,0.35); }
+    50%      { box-shadow: 0 0 14px rgba(109,184,125,0.65); }
+  }
+
+  /* 终止按钮 —— 放在控制台右下角 */
+  .btn-stop-console {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: linear-gradient(135deg, #e0a0b8, #d08098);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(208,128,152,0.28);
+    z-index: 2;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .btn-stop-console.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .btn-stop-console.active:hover {
+    box-shadow: 0 4px 18px rgba(208,128,152,0.42);
+    transform: translateY(-1px);
+  }
+  .btn-stop-console.active:active { transform: scale(0.96); }
+
+  /* ── 内容区 ── */
+  .tab-content {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+    animation: fadeSlide 0.22s ease;
+  }
+  .tab-content.active { display: flex; flex-direction: column; }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ════════════════ Tab 1: 快捷管理 ════════════════ */
+  .t1-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 18px 20px 16px;
+    gap: 14px;
+  }
+  .t1-banner {
+    flex: 1;
+    border-radius: var(--radius-md);
+    background: var(--card);
+    border: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    overflow: hidden;
+    min-height: 140px;
+    background-size: cover;
+    background-position: center;
+  }
+  .t1-banner.has-image { border-style: solid; border-color: var(--border); }
+  .t1-banner-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .t1-banner-placeholder .banner-icon {
+    font-size: 34px;
+    margin-bottom: 4px;
+    opacity: 0.30;
+  }
+  .t1-banner-placeholder .banner-text {
+    font-size: 12px;
+    font-weight: 440;
+  }
+
+  /* 底部卡片网格: 4 文件夹 + 1 启动按钮 = 5 列 */
+  .folder-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .folder-card {
+    background: var(--card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 13px 8px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+    user-select: none;
+  }
+  .folder-card:hover {
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+    background: var(--card-hover);
+  }
+  .folder-card:active { transform: scale(0.965); }
+  .folder-card .f-icon { font-size: 20px; margin-bottom: 4px; }
+  .folder-card .f-name { font-size: 11.5px; font-weight: 460; }
+  .folder-card .f-path {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 启动卡片 —— 粉底白字，和文件夹卡片尺寸一致 */
+  .folder-card.launch-card {
+    background: linear-gradient(135deg, #e0a0b8, #d08098);
+    border: none;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 2px 10px rgba(208,128,152,0.28);
+  }
+  .folder-card.launch-card:hover {
+    box-shadow: 0 4px 18px rgba(208,128,152,0.42);
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #e8a8c0, #d488a0);
+  }
+  .folder-card.launch-card:active { transform: scale(0.965); }
+  .folder-card.launch-card.running {
+    background: #b8b4ad;
+    box-shadow: none;
+    cursor: default;
+    pointer-events: none;
+  }
+  .folder-card.launch-card .f-icon { font-size: 20px; }
+  .folder-card.launch-card .f-name { color: #fff; font-weight: 500; }
+  .folder-card.launch-card .f-path { color: rgba(255,255,255,0.7); font-size: 9.5px; }
+
+  /* ════════════════ Tab 2: 图片参数 ════════════════ */
+  .t2-layout {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--card);
+    flex-shrink: 0;
+  }
+  .dropzone:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone .dz-icon { font-size: 30px; margin-bottom: 4px; opacity: 0.45; }
+  .dropzone .dz-text { font-size: 12.5px; color: var(--text-secondary); }
+  .dropzone .dz-sub  { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .param-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    flex: 1;
+    align-content: start;
+  }
+  .param-item {
+    background: var(--card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+  }
+  .param-item .p-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+  .param-item .p-value {
+    font-size: 12.5px;
+    font-weight: 450;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  /* ════════════════ Tab 3: 控制台 ════════════════ */
+  .t3-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 12px 12px 12px;
+    min-height: 0;
+    position: relative;
+  }
+  .console-box {
+    flex: 1;
+    background: var(--console-bg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: var(--console-text);
+    overflow-y: auto;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.04);
+    min-height: 0;
+  }
+  .console-line { white-space: pre-wrap; word-break: break-all; }
+  .console-line.error { color: var(--console-error); }
+  .console-line.warn  { color: var(--console-warn); }
+  .console-line.info  { color: var(--console-info); }
+  .console-line .ts {
+    color: var(--console-dim);
+    margin-right: 8px;
+    font-size: 10px;
+    user-select: none;
+  }
+
+  /* ════════════════ Tab 4: 设置 ════════════════ */
+  .t4-layout {
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .settings-group {
+    background: var(--card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    transition: all var(--transition);
+  }
+  .settings-group .sg-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  /* 设置行 */
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .setting-label {
+    font-size: 13px;
+    font-weight: 460;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    white-space: nowrap;
+    min-width: 90px;
+  }
+  .input-pill {
+    flex: 1;
+    min-width: 200px;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: all var(--transition-fast);
+  }
+  .input-pill:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .input-pill:disabled { opacity: 0.4; }
+
+  /* Toggle */
+  .toggle-switch {
+    position: relative;
+    width: 38px; height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #d0cbc5;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .toggle-slider::after {
+    content: "";
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-slider::after { transform: translateX(16px); }
+
+  .setting-hint {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* 下拉选择 */
+  .select-pill {
+    padding: 8px 30px 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238a837b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: all var(--transition-fast);
+  }
+
+  /* 主题切换卡片 */
+  .theme-cards { display: flex; gap: 10px; }
+  .theme-card {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border-light);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+  }
+  .theme-card:hover { border-color: var(--border); }
+  .theme-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .theme-card .tc-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(0,0,0,0.08);
+  }
+  .theme-card .tc-dot.light { background: #faf9f6; }
+  .theme-card .tc-dot.dark  { background: #262421; }
+  .theme-card .tc-label { font-size: 13px; font-weight: 460; }
+  .theme-card .tc-sub  { font-size: 10.5px; color: var(--text-muted); }
+
+  /* 背景图选择 */
+  .bg-picker-row { display: flex; align-items: center; gap: 10px; }
+  .bg-preview {
+    width: 80px; height: 50px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+  }
+  .btn-small {
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-family: var(--font);
+    font-size: 11.5px;
+    cursor: pointer;
+    color: var(--text);
+    transition: all var(--transition-fast);
+    font-weight: 440;
+  }
+  .btn-small:hover { background: var(--card-hover); }
+  .btn-small.accent {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d5d0ca; border-radius: 3px; }
+  [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #4a4540; }
+</style>
+</head>
+<body>
+
+<div class="app-window">
+
+  <!-- 标题栏 -->
+  <div class="titlebar">
+    <div class="logo">✦</div>
+    <h1>Forge NEO 管理工具</h1>
+    <span class="env-tag">NEO 已识别</span>
+    <div class="win-ctrls">
+      <button class="win-btn" title="最小化">─</button>
+      <button class="win-btn close" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <!-- Tab 栏 + 全局状态 + 终止按钮 -->
+  <div class="tab-row">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="0">快捷管理</button>
+      <button class="tab-btn" data-tab="1">图片参数</button>
+      <button class="tab-btn" data-tab="2">控制台</button>
+      <button class="tab-btn" data-tab="3">设置</button>
+    </div>
+    <div class="status-group">
+      <div class="status-indicator" id="globalStatus">
+        <span class="status-dot dead" id="globalStatusDot"></span>
+        <span id="globalStatusText">未启动</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ Tab 1: 快捷管理 ════════════════ -->
+  <div class="tab-content active" id="tab-0">
+    <div class="t1-layout">
+      <div class="t1-banner" id="t1Banner">
+        <div class="t1-banner-placeholder">
+          <div class="banner-icon">🖼️</div>
+          <div class="banner-text">背景图片区域</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">在「设置」中选择图片</div>
+        </div>
+      </div>
+
+      <div class="folder-grid">
+        <div class="folder-card">
+          <div class="f-icon">📁</div>
+          <div class="f-name">输出目录</div>
+          <div class="f-path">outputs/txt2img</div>
+        </div>
+        <div class="folder-card">
+          <div class="f-icon">🧩</div>
+          <div class="f-name">模型</div>
+          <div class="f-path">models/Stable-diffusion</div>
+        </div>
+        <div class="folder-card">
+          <div class="f-icon">🎨</div>
+          <div class="f-name">Lora</div>
+          <div class="f-path">models/Lora</div>
+        </div>
+        <div class="folder-card">
+          <div class="f-icon">📝</div>
+          <div class="f-name">Embeddings</div>
+          <div class="f-path">embeddings</div>
+        </div>
+        <div class="folder-card launch-card" id="btnLaunch">
+          <div class="f-icon">▶</div>
+          <div class="f-name">启动 Forge NEO</div>
+          <div class="f-path" id="launchModeHint">SDP 模式</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ Tab 2: 图片参数 ════════════════ -->
+  <div class="tab-content" id="tab-1">
+    <div class="t2-layout">
+      <div class="dropzone">
+        <div class="dz-icon">🖼️</div>
+        <div class="dz-text">拖拽图片到这里，或点击浏览</div>
+        <div class="dz-sub">支持 WebUI / Forge / ComfyUI 生成的 PNG</div>
+      </div>
+      <div class="param-grid">
+        <div class="param-item"><div class="p-label">Prompt</div><div class="p-value">masterpiece, best quality, 1girl, cherry blossoms...</div></div>
+        <div class="param-item"><div class="p-label">Negative Prompt</div><div class="p-value">worst quality, low quality, bad anatomy...</div></div>
+        <div class="param-item"><div class="p-label">Seed</div><div class="p-value">2847592016</div></div>
+        <div class="param-item"><div class="p-label">Steps</div><div class="p-value">28</div></div>
+        <div class="param-item"><div class="p-label">CFG Scale</div><div class="p-value">7</div></div>
+        <div class="param-item"><div class="p-label">Sampler</div><div class="p-value">DPM++ 2M SDE Karras</div></div>
+        <div class="param-item"><div class="p-label">Model</div><div class="p-value">waiNSFWIllustrious_v110</div></div>
+        <div class="param-item"><div class="p-label">Size</div><div class="p-value">1216 × 832</div></div>
+        <div class="param-item"><div class="p-label">Hires Upscaler</div><div class="p-value">4x-UltraSharp (×2)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ Tab 3: 控制台 ════════════════ -->
+  <div class="tab-content" id="tab-2">
+    <div class="t3-layout">
+      <div class="console-box" id="consoleBox">
+        <div class="console-line info"><span class="ts">14:32:01</span>Starting Forge NEO...</div>
+        <div class="console-line info"><span class="ts">14:32:02</span>Python 3.10.11 · CUDA 12.1 · torch 2.1.2+cu121</div>
+        <div class="console-line"><span class="ts">14:32:02</span>Loading weights from models/Stable-diffusion/waiNSFWIllustrious_v110.safetensors</div>
+        <div class="console-line info"><span class="ts">14:32:08</span>Model loaded in 5.8s</div>
+        <div class="console-line info"><span class="ts">14:32:08</span>Running on <span style="color:#d8d3ce">http://127.0.0.1:7860</span></div>
+        <div class="console-line warn"><span class="ts">14:32:09</span>--medvram flag not set</div>
+        <div class="console-line"><span class="ts">14:32:09</span>Startup complete — ready for requests</div>
+        <div class="console-line"><span class="ts">14:33:15</span>POST /sdapi/v1/txt2img [200] — 3.2s</div>
+        <div class="console-line"><span class="ts">14:33:42</span>POST /sdapi/v1/txt2img [200] — 4.1s</div>
+        <div class="console-line error"><span class="ts">14:34:01</span>CUDA OOM · tried to allocate 512 MiB (24 GiB total)</div>
+        <div class="console-line"><span class="ts">14:34:05</span>POST /sdapi/v1/txt2img [500] — 0.1s</div>
+        <div class="console-line"><span class="ts">14:35:12</span>POST /sdapi/v1/txt2img [200] — 2.8s</div>
+        <div class="console-line"><span class="ts">14:36:01</span>POST /sdapi/v1/img2img [200] — 1.9s</div>
+        <div class="console-line info"><span class="ts">14:36:44</span>Model swap: waiNSFWIllustrious_v110 → clearRealistic_v50</div>
+        <div class="console-line warn"><span class="ts">14:36:46</span>VRAM usage: 18.2 / 24.0 GiB (75%)</div>
+        <div class="console-line"><span class="ts">14:37:01</span>POST /sdapi/v1/txt2img [200] — 3.0s</div>
+        <div class="console-line"><span class="ts">14:37:30</span>POST /sdapi/v1/txt2img [200] — 2.6s</div>
+        <div class="console-line info"><span class="ts">14:38:01</span>Idle — 0 active requests</div>
+      </div>
+      <button class="btn-stop-console" id="btnStop">终止 NEO</button>
+    </div>
+  </div>
+
+  <!-- ════════════════ Tab 4: 设置 ════════════════ -->
+  <div class="tab-content" id="tab-3">
+    <div class="t4-layout">
+
+      <div class="settings-group">
+        <div class="sg-title">外观</div>
+        <div class="theme-cards">
+          <div class="theme-card selected" id="themeLight" data-theme="light">
+            <div class="tc-dot light"></div>
+            <div>
+              <div class="tc-label">亮色模式</div>
+              <div class="tc-sub">温暖、柔和的日间色调</div>
+            </div>
+          </div>
+          <div class="theme-card" id="themeDark" data-theme="dark">
+            <div class="tc-dot dark"></div>
+            <div>
+              <div class="tc-label">暗色模式</div>
+              <div class="tc-sub">深邃、沉浸的夜间色调</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="sg-title">代理服务器</div>
+        <div class="setting-row">
+          <label class="setting-label">
+            <span class="toggle-switch">
+              <input type="checkbox" id="proxyToggle">
+              <span class="toggle-slider"></span>
+            </span>
+            代理开关
+          </label>
+          <input type="text" class="input-pill" id="proxyUrl"
+                 value="http://127.0.0.1:7897" placeholder="http://127.0.0.1:7897" disabled />
+        </div>
+        <div class="setting-hint" id="proxyHint">关闭 — NEO 网络流量将直接连接</div>
+      </div>
+
+      <div class="settings-group">
+        <div class="sg-title">启动模式</div>
+        <div class="setting-row">
+          <span class="setting-label">Forge NEO 启动方式</span>
+          <select class="select-pill" id="launchMode">
+            <option value="sdp">SDP 模式 (Launch_ForgeNeo_SDP.bat)</option>
+            <option value="sage">Sage 模式 (Launch_ForgeNeo_Sage.bat)</option>
+          </select>
+        </div>
+        <div class="setting-hint">
+          切换后点击「启动 Forge NEO」时将执行对应的 bat 文件
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="sg-title">文件管理器</div>
+        <div class="setting-row">
+          <span class="setting-label">打开文件夹时使用</span>
+          <select class="select-pill">
+            <option>资源管理器</option>
+            <option>XYplorer</option>
+            <option>Total Commander</option>
+            <option>Directory Opus</option>
+            <option>自定义…</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="sg-title">快捷管理 — 背景图片</div>
+        <div class="bg-picker-row">
+          <div class="bg-preview" id="bgPreview"></div>
+          <div>
+            <button class="btn-small accent" id="btnPickBg">选择图片…</button>
+            <button class="btn-small" id="btnClearBg" style="margin-left:6px;">清除</button>
+          </div>
+        </div>
+        <div class="setting-hint">所选图片将显示在「快捷管理」页面的背景区域</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ═══ Tab 切换 ═══
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ═══ 全局状态 ═══
+  const statusDot = document.getElementById('globalStatusDot');
+  const statusText = document.getElementById('globalStatusText');
+  const btnLaunch = document.getElementById('btnLaunch');
+  const btnStop = document.getElementById('btnStop');
+  const launchModeHint = document.getElementById('launchModeHint');
+  const launchModeSelect = document.getElementById('launchMode');
+  const consoleBox = document.getElementById('consoleBox');
+  let running = false;
+
+  function setRunning(state) {
+    running = state;
+    statusDot.className = 'status-dot ' + (state ? 'live' : 'dead');
+    statusText.textContent = state ? '运行中' : '未启动';
+    btnLaunch.classList.toggle('running', state);
+    btnLaunch.querySelector('.f-name').textContent = state ? '正在运行…' : '启动 Forge NEO';
+    updateLaunchHint(state);
+    btnStop.classList.toggle('active', state);
+  }
+
+  btnLaunch.addEventListener('click', () => { if (!running) setRunning(true); });
+  btnStop.addEventListener('click', () => { if (running) setRunning(false); });
+
+  // ═══ 启动模式联动 ═══
+  function updateLaunchHint(isRunning) {
+    const mode = launchModeSelect.value === 'sdp' ? 'SDP 模式' : 'Sage 模式';
+    launchModeHint.textContent = isRunning ? `NEO 运行中 · ${mode}` : mode;
+  }
+  launchModeSelect.addEventListener('change', () => updateLaunchHint(running));
+  updateLaunchHint(false);
+
+  // ═══ 代理开关联动 ═══
+  const proxyToggle = document.getElementById('proxyToggle');
+  const proxyUrl = document.getElementById('proxyUrl');
+  const proxyHint = document.getElementById('proxyHint');
+  proxyToggle.addEventListener('change', () => {
+    proxyUrl.disabled = !proxyToggle.checked;
+    proxyHint.innerHTML = proxyToggle.checked
+      ? '<span style="color:var(--console-green);">● 已开启</span> — NEO 网络流量将走代理，重启后生效'
+      : '关闭 — NEO 网络流量将直接连接';
+  });
+
+  // ═══ 主题切换 ═══
+  const html = document.documentElement;
+  const themeLight = document.getElementById('themeLight');
+  const themeDark = document.getElementById('themeDark');
+  themeLight.addEventListener('click', () => {
+    html.setAttribute('data-theme', 'light');
+    themeLight.classList.add('selected');
+    themeDark.classList.remove('selected');
+    localStorage.setItem('forge-neo-theme', 'light');
+  });
+  themeDark.addEventListener('click', () => {
+    html.setAttribute('data-theme', 'dark');
+    themeDark.classList.add('selected');
+    themeLight.classList.remove('selected');
+    localStorage.setItem('forge-neo-theme', 'dark');
+  });
+  (() => { if (localStorage.getItem('forge-neo-theme') === 'dark') themeDark.click(); })();
+
+  // ═══ 背景图片选择 ═══
+  const t1Banner = document.getElementById('t1Banner');
+  const bgPreview = document.getElementById('bgPreview');
+  const placeholder = t1Banner.querySelector('.t1-banner-placeholder');
+
+  document.getElementById('btnPickBg').addEventListener('click', () => {
+    const demoImg = 'https://images.unsplash.com/photo-1559827291-bc5e44b0a959?w=800&h=300&fit=crop&crop=center';
+    setBgImage(demoImg);
+  });
+
+  document.getElementById('btnClearBg').addEventListener('click', () => {
+    t1Banner.style.backgroundImage = '';
+    t1Banner.classList.remove('has-image');
+    bgPreview.style.backgroundImage = '';
+    if (placeholder) placeholder.style.display = '';
+  });
+
+  function setBgImage(url) {
+    t1Banner.style.backgroundImage = `url(${url})`;
+    t1Banner.classList.add('has-image');
+    bgPreview.style.backgroundImage = `url(${url})`;
+    if (placeholder) placeholder.style.display = 'none';
+  }
+
+  // 控制台初始滚动到底部
+  consoleBox.scrollTop = consoleBox.scrollHeight;
+
+  // ═══ 卡片点击反馈 ═══
+  document.querySelectorAll('.folder-card:not(.launch-card)').forEach(card => {
+    card.addEventListener('mousedown', () => card.style.transform = 'scale(0.95)');
+    card.addEventListener('mouseup',   () => card.style.transform = '');
+    card.addEventListener('mouseleave',() => card.style.transform = '');
+  });
+</script>
+
+</body>
+</html>

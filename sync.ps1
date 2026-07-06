@@ -12,6 +12,7 @@ $BuildOut   = Join-Path $ScriptRoot "bin\Debug\net10.0-windows"
 $Targets = @(
     "F:\Programmes\AICreater\novelai-webui-aki\sd-webui-forge-neo\sd-webui-forge-neo\ForgeSide",
     "F:\Programmes\AICreater\novelai-webui-aki\sd-webui-forge-neo-offcial\ForgeSide",
+    "F:\Programmes\AICreater\novelai-webui-aki\sd-webui-forge-neo-licyk\sd_webui_forge_neo-licyk\ForgeSide",
     (Join-Path $ScriptRoot "dist\ForgeSide")
 )
 
