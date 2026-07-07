@@ -5,9 +5,9 @@
 一个 Windows 端 [Forge NEO](https://github.com/Haoming02/sd-webui-forge-classic/) 启动器，提供图形化界面来管理和启动 Forge NEO，包含控制台输出、图片参数解析、图库浏览、版本管理等功能。支持[官方版 Forge NEO](https://github.com/Haoming02/sd-webui-forge-classic/)，理论上也支持基于[官方版 Forge NEO](https://github.com/Haoming02/sd-webui-forge-classic/)的第三方整合包。
 
 <p style="color:#d2889e;">
-本软件目前仍在开发中，界面仅支持中文，计划未来支持英语和日语。<br>
-This software is currently in development. English and Japanese UI support are planned for future releases.<br>
-本ソフトウェアは現在開発中です。英語・日本語のUI対応を予定しています。
+本软件目前支持 简体中文・繁体中文・English・日本語 四种界面语言。<br>
+This software currently supports Simplified Chinese, Traditional Chinese, English, and Japanese.<br>
+本ソフトウェアは現在、簡体字中国語・繁体字中国語・英語・日本語の4言語に対応しています。
 </p>
 
 ---
@@ -154,6 +154,12 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 
 ## 📋 更新记录
+
+### V1.4
+
+- 🐛 解决了控制台乱码的问题
+- ⚡ 优化了 WebUI 启动逻辑
+- 🌍 软件界面目前支持 简体中文・繁體中文・English・日本語 四种语言切换
 
 ### V1.3
 
