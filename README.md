@@ -81,24 +81,31 @@ ForgeSide only supports launching and managing <a href="https://github.com/Haomi
 ## 🖼 Screenshots
 
 ![Home](screenshots/EN/EN-01.jpg)
+
 *Home — launch entry, quick folders, background image*
 
 ![Image Params](screenshots/EN/EN-02.jpg)
+
 *Image Params — drag in a PNG for automatic parsing*
 
 ![Gallery](screenshots/EN/EN-03.jpg)
+
 *Gallery — thumbnail browsing, multi-tag search*
 
 ![Console](screenshots/EN/EN-04.jpg)
+
 *Console — real-time output, start/stop NEO*
 
 ![Version Management](screenshots/EN/EN-05.jpg)
+
 *Version Management — release history, one-click upgrade*
 
 ![Settings](screenshots/EN/EN-06.jpg)
+
 *Settings — theme, launch mode, proxy, sound, and more*
 
 ![About](screenshots/EN/EN-07.jpg)
+
 *About — version info, copyright*
 
 ---
