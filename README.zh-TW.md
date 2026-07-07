@@ -1,3 +1,7 @@
+[🌏 English](README.md) | [简体中文](README.zh-CN.md) | **繁體中文** | [日本語](README.ja.md)
+
+---
+
 # ForgeSide ✨
 
 > Forge NEO 的輔助啟動工具——漂亮、輕巧、順手。
