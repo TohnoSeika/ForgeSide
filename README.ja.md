@@ -22,24 +22,20 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## ✨ 機能
 
-### 🚀 起動と管理
 - **ワンクリック起動** — コマンド入力不要、クリックするだけ
 - **3つの起動モード** — SDP（互換性優先、加速無効）、Sage（SageAttention 加速有効）、標準（webui.bat を起動）
 - **内蔵起動ロジック** — 外部スクリプト不要
 - **プロセス保護** — NEO 実行中の誤終了を防止する確認ダイアログ
 
-### 🖥️ リアルタイムコンソール
 - Forge NEO の出力をリアルタイムでキャプチャして表示
 - エラー（Error / Traceback / CUDA OOM）は赤、警告は黄、情報は青で強調表示
 - 実行中はいつでも「NEO 停止」または「WebUI を開く」をワンクリック
 
-### 🖼️ 画像パラメータ解析
 - WebUI / Forge / ComfyUI で生成された PNG 画像を読み込み
 - Prompt、Negative Prompt、Seed、Steps、CFG Scale、Sampler、Model、解像度などを自動解析
 - クリック読み込み、ファイルドラッグ＆ドロップ、base64 ドラッグ＆ドロップに対応
 - 各パラメータにコピーボタン付き
 
-### 🗂️ ギャラリー閲覧
 - Forge NEO の出力ディレクトリから PNG 画像を自動スキャン
 - 3段階のサムネイルサイズ（小/中/大）、非同期でバックグラウンド生成
 - 複数タグ検索（カンマ区切り、順序不問）
@@ -47,32 +43,26 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 - ギャラリーから外部（フォルダ、エディタなど）への画像ドラッグに対応
 - ギャラリーのパスは Forge NEO の出力ディレクトリに固定
 
-### 🎨 ビジュアルと操作感
 - ピンク基調の優しいインターフェース、ワンクリックでライト/ダークテーマ切替
 - ボーダーレスカスタムウィンドウ、ドラッグ移動、サイズ変更、最大化/復元に対応
 - ホームバナー上での桜エフェクト（Canvas）
 - 角丸ウィンドウ、スムーズなアニメーション
 
-### 📦 バージョン管理
 - ローカルの Forge NEO バージョンを自動検出し、GitHub から最新リリース情報を取得
 - リリース履歴と更新内容を表示
 - 指定バージョンへのアップグレード/切替/ロールバックをワンクリック（Git tag）
 - サードパーティパック（`webui/` ディレクトリ）と[公式 GitHub 版](https://github.com/Haoming02/sd-webui-forge-classic/)の両方に対応
 
-### 🌐 プロキシ対応
 - HTTP プロキシ設定（ON/OFF 切替、カスタムアドレス）
 - Google と Hugging Face の接続テストをワンクリック
 
-### 🎵 通知音
 - 画像生成完了時に自動再生
 - カスタムサウンドファイル対応（.mp3 / .wav / .ogg / .flac 等）
 - システムデフォルトサウンドに戻すオプション
 
-### 📋 システム情報
 - ワンクリックでハードウェア構成を表示
 - Python バージョンと Forge NEO バージョンを自動検出
 
-### 🖼️ カスタム背景
 - ホームバナーにカスタム背景画像を設定可能
 - ビジュアルポジションエディター：ドラッグで移動、ホイールでズーム、十字線が中心をマーク
 
@@ -105,11 +95,9 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## 📦 ダウンロード
 
-### テスター向け
 
 [Releases](https://github.com/TohnoSeika/ForgeSide/releases) ページから最新バージョンをダウンロードしてください。
 
-### システム要件
 
 1. **OS**：Windows 10 および Windows 11（64bit）のみ対応
    - Windows 7 / 8 / 8.1、Linux、macOS は非対応
@@ -120,7 +108,6 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
    - Windows 10 は手動インストールが必要な場合あり
    - ダウンロード：https://developer.microsoft.com/ja-jp/microsoft-edge/webview2/
 
-### インストール手順
 
 1. .NET 10 Desktop Runtime をインストール（未インストールの場合）
 2. `ForgeSide` フォルダを Forge NEO のルートディレクトリに展開：
@@ -155,13 +142,11 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## 📋 更新履歴
 
-### V1.4
 
 - 🐛 コンソールの文字化けを修正
 - ⚡ WebUI 起動ロジックを最適化
 - 🌍 簡体字中国語・繁体字中国語・英語・日本語の4言語に対応
 
-### V1.3（中国語のみ）
 
 - 🏗️ [公式 Forge NEO](https://github.com/Haoming02/sd-webui-forge-classic/) に対応
 - 📦 GitHub からバージョン管理（表示、アップグレード、切替）に対応
@@ -172,13 +157,11 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 - ⚡ 起動ロジックを ForgeSide に内蔵
 - 🌐 プロキシ接続テスト（Google / Hugging Face）を追加
 
-### V1.2（中国語のみ）
 
 - 🪟 ウィンドウのサイズ変更と最大化に対応
 - 📋 ハードウェア情報表示（CPU / GPU / RAM / ディスク / 画面）を追加
 - 🗂️ ギャラリー機能を追加
 
-### V1.1（中国語のみ）
 
 - 🔒 NEO 実行中の終了確認ダイアログを追加
 - 🐛 サードパーティファイルマネージャー（XYplorer）の問題を修正
@@ -187,7 +170,6 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 - 🐛 背景位置のエディタと実際の表示の不一致を修正
 - 🎵 カスタム通知音とファイルパス表示を追加
 
-### V1.0（中国語のみ）
 
 - 🎉 初回リリース
 
