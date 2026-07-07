@@ -1,3 +1,7 @@
+[🌏 English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | **日本語**
+
+---
+
 # ForgeSide ✨
 
 > Forge NEO ランチャー——美しく、軽快で、使いやすく。
