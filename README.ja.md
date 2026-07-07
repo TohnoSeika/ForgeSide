@@ -80,25 +80,25 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## 🖼 スクリーンショット
 
-![ホーム](screenshots/01.jpg)
+![ホーム](screenshots/JP/JP-01.jpg)
 *ホーム — 起動エントリ、クイックフォルダ、背景画像*
 
-![画像パラメータ](screenshots/02.jpg)
+![画像パラメータ](screenshots/JP/JP-02.jpg)
 *画像パラメータ — PNG をドロップして自動解析*
 
-![ギャラリー](screenshots/03.jpg)
+![ギャラリー](screenshots/JP/JP-03.jpg)
 *ギャラリー — サムネイル閲覧、マルチタグ検索*
 
-![コンソール](screenshots/04.jpg)
+![コンソール](screenshots/JP/JP-04.jpg)
 *コンソール — リアルタイム出力、NEO 起動/停止*
 
-![バージョン管理](screenshots/05.jpg)
+![バージョン管理](screenshots/JP/JP-05.jpg)
 *バージョン管理 — リリース履歴、ワンクリックアップグレード*
 
-![設定](screenshots/06.jpg)
+![設定](screenshots/JP/JP-06.jpg)
 *設定 — テーマ、起動モード、プロキシ、通知音など*
 
-![About](screenshots/07.jpg)
+![About](screenshots/JP/JP-07.jpg)
 *About — バージョン情報、著作権*
 
 ---
