@@ -105,8 +105,6 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ## 📦 ダウンロード
 
-### テスター向け
-
 [Releases](https://github.com/TohnoSeika/ForgeSide/releases) ページから最新バージョンをダウンロードしてください。
 
 ### システム要件
