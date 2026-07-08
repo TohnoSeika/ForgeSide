@@ -80,39 +80,30 @@ ForgeSide 僅支援啟動和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ## 🖼 截圖
 
-![首頁](screenshots/CNT/CNT-01.jpg)
-
+![首頁](screenshots/01.jpg)
 *首頁 — 啟動入口、快捷資料夾、背景圖*
 
-![圖片參數](screenshots/CNT/CNT-02.jpg)
-
+![圖片參數](screenshots/02.jpg)
 *圖片參數 — 拖入 PNG 自動解析生成資訊*
 
-![圖庫](screenshots/CNT/CNT-03.jpg)
-
+![圖庫](screenshots/03.jpg)
 *圖庫 — 縮圖瀏覽、多 tag 搜尋*
 
-![控制台](screenshots/CNT/CNT-04.jpg)
-
+![控制台](screenshots/04.jpg)
 *控制台 — 即時輸出日誌、啟動/終止 NEO*
 
-![版本管理](screenshots/CNT/CNT-05.jpg)
-
+![版本管理](screenshots/05.jpg)
 *版本管理 — 檢視版本、Release 記錄、一鍵升級*
 
-![設定](screenshots/CNT/CNT-06.jpg)
-
+![設定](screenshots/06.jpg)
 *設定 — 主題切換、啟動模式、代理、提示音等*
 
-![關於](screenshots/CNT/CNT-07.jpg)
-
+![關於](screenshots/07.jpg)
 *關於 — 版本資訊、版權聲明*
 
 ---
 
 ## 📦 下載
-
-### 測試人員
 
 從 [Releases](https://github.com/TohnoSeika/ForgeSide/releases) 頁面下載最新版本的壓縮包。
 
