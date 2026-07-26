@@ -810,20 +810,20 @@
 
 <div class="titlebar" id="titlebar">
   <div class="logo"><img src="" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
-  <h1>ForgeSide V1.4</h1>
-  <span class="env-tag">NEO 已识别</span>
+  <h1>ForgeSide V1.41</h1>
+  <span class="env-tag" data-i18n="home.env_tag">NEO 已识别</span>
   <div class="win-ctrls">
-    <button class="win-btn" onclick="bridge('minimize')" title="最小化">
+    <button class="win-btn" onclick="bridge('minimize')" data-i18n-title="win.minimize" title="最小化">
       <svg width="10" height="10" viewBox="0 0 10 10"><line x1="2" y1="5" x2="8" y2="5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
     </button>
-    <button class="win-btn" id="btnMaximize" onclick="bridge('maximize')" title="最大化">
+    <button class="win-btn" id="btnMaximize" onclick="bridge('maximize')" data-i18n-title="win.maximize" title="最大化">
       <svg class="icon-max" width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="2" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
       <svg class="icon-restore" width="10" height="10" viewBox="0 0 10 10" style="display:none">
         <rect x="3" y="1.5" width="5" height="5" rx="0.8" fill="currentColor" fill-opacity="0.07" stroke="currentColor" stroke-width="1.2"/>
         <path d="M1.5,3 v4.5 c0,0.28 0.22,0.5 0.5,0.5 h4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <button class="win-btn close" onclick="bridge('close')" title="关闭">
+    <button class="win-btn close" onclick="bridge('close')" data-i18n-title="win.close" title="关闭">
       <svg width="10" height="10" viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
     </button>
   </div>
@@ -831,17 +831,17 @@
 
 <div class="tab-row">
   <div class="tab-bar" id="tabBar">
-    <button class="tab-btn active" data-tab="0">首页</button>
-    <button class="tab-btn" data-tab="1">图片参数</button>
-    <button class="tab-btn" data-tab="2">图库</button>
-    <button class="tab-btn" data-tab="3">控制台</button>
-    <button class="tab-btn" data-tab="4">版本管理</button>
-    <button class="tab-btn" data-tab="5">设置</button>
+    <button class="tab-btn active" data-tab="0" data-i18n="tab.home">首页</button>
+    <button class="tab-btn" data-tab="1" data-i18n="tab.params">图片参数</button>
+    <button class="tab-btn" data-tab="2" data-i18n="tab.gallery">图库</button>
+    <button class="tab-btn" data-tab="3" data-i18n="tab.console">控制台</button>
+    <button class="tab-btn" data-tab="4" data-i18n="tab.versions">版本管理</button>
+    <button class="tab-btn" data-tab="5" data-i18n="tab.settings">设置</button>
   </div>
   <div class="status-group">
     <div class="status-indicator">
       <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">未启动</span>
+      <span id="statusText" data-i18n="status.stopped">未启动</span>
     </div>
   </div>
 </div>
@@ -854,33 +854,33 @@
         <canvas class="sakura-canvas" id="sakuraCanvas"></canvas>
         <div class="t1-banner-placeholder" id="bannerPh">
           <div class="bi">🖼️</div>
-          <div class="bt">背景图片区域</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">在「设置」中选择图片</div>
+          <div class="bt" data-i18n="home.banner.ph">背景图片区域</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;" data-i18n="home.banner.hint">在「设置」中选择图片</div>
         </div>
       </div>
       <div class="t1-brand">
         <div class="t1-brand-text">
           <div class="t1-name">ForgeSide</div>
-          <div class="t1-tagline">一个 Forge Neo 启动器</div>
+          <div class="t1-tagline" data-i18n="home.tagline">一个 Forge Neo 启动器</div>
         </div>
       </div>
     </div>
     <div class="folder-grid">
       <div class="f-card" onclick="bridge('openFolder','output')">
-        <div class="fi">📁</div><div class="fn">输出目录</div><div class="fp">webui/output/images</div>
+        <div class="fi">📁</div><div class="fn" data-i18n="home.folder.output">输出目录</div><div class="fp">webui/output/images</div>
       </div>
       <div class="f-card" onclick="bridge('openFolder','models')">
-        <div class="fi">🧩</div><div class="fn">模型</div><div class="fp">webui/models/Stable-diffusion</div>
+        <div class="fi">🧩</div><div class="fn" data-i18n="home.folder.models">模型</div><div class="fp">webui/models/Stable-diffusion</div>
       </div>
       <div class="f-card" onclick="bridge('openFolder','lora')">
-        <div class="fi">🎨</div><div class="fn">Lora</div><div class="fp">webui/models/Lora</div>
+        <div class="fi">🎨</div><div class="fn" data-i18n="home.folder.lora">Lora</div><div class="fp">webui/models/Lora</div>
       </div>
       <div class="f-card" onclick="bridge('openFolder','root')">
-        <div class="fi">🏠</div><div class="fn">根目录</div><div class="fp">Forge NEO 根目录</div>
+        <div class="fi">🏠</div><div class="fn" data-i18n="home.folder.root">根目录</div><div class="fp">Forge NEO</div>
       </div>
       <div class="f-card launch-card" id="btnLaunch" onclick="launchAndSwitch()">
         <div class="fi">▶</div>
-        <div class="fn">启动 Forge NEO</div>
+        <div class="fn" data-i18n="status.launch_btn">启动 Forge NEO</div>
         <div class="fp" id="launchModeHint">SDP 模式</div>
       </div>
     </div>
@@ -892,11 +892,11 @@
   <div class="t2-layout">
     <div class="dropzone" id="dropzone" onclick="bridge('pickImage')">
       <div class="dz-icon">🖼️</div>
-      <div class="dz-text">点击这里载入图片，或拖曳图片到此页面任意区域</div>
-      <div class="dz-sub">支持 WebUI / Forge / ComfyUI 生成的 PNG</div>
+      <div class="dz-text" data-i18n="params.dropzone">点击这里载入图片，或拖曳图片到此页面任意区域</div>
+      <div class="dz-sub" data-i18n="params.dropzone.sub">支持 WebUI / Forge / ComfyUI 生成的 PNG</div>
     </div>
     <div class="img-preview" id="imgPreview">
-      <img id="previewImg" src="" alt="预览" />
+      <img id="previewImg" src="" data-i18n-alt="params.preview" alt="预览" />
     </div>
     <div class="param-grid" id="paramGrid"></div>
   </div>
@@ -908,26 +908,26 @@
     <div class="gallery-toolbar">
       <div class="gallery-search">
         <span class="gallery-search-icon">🔍</span>
-        <input type="text" id="gallerySearch" placeholder="搜索 prompt…（如 1girl, masterpiece）" oninput="onGallerySearch()" />
-        <button class="gallery-search-clear" id="gallerySearchClear" onclick="clearGallerySearch()" title="清除搜索">✕</button>
+        <input type="text" id="gallerySearch" data-i18n-placeholder="gallery.search_ph" placeholder="搜索 prompt…（如 1girl, masterpiece）" oninput="onGallerySearch()" />
+        <button class="gallery-search-clear" id="gallerySearchClear" onclick="clearGallerySearch()" title="Clear">✕</button>
       </div>
       <div class="gallery-size-group">
-        <span class="sl">尺寸</span>
+        <span class="sl" data-i18n="gallery.size">尺寸</span>
         <select class="select-pill" id="gallerySize" onchange="onGallerySizeChange()">
-          <option value="small">小</option>
-          <option value="medium" selected>中</option>
-          <option value="large">大</option>
+          <option value="small" data-i18n="gallery.size_small">小</option>
+          <option value="medium" selected data-i18n="gallery.size_medium">中</option>
+          <option value="large" data-i18n="gallery.size_large">大</option>
         </select>
       </div>
     </div>
     <div class="gallery-body">
       <div class="gallery-grid" id="galleryGrid">
         <div class="gallery-grid-inner" id="galleryGridInner">
-          <div class="gallery-empty" id="galleryEmpty">没有发现 Forge Neo 生成的图片</div>
+          <div class="gallery-empty" id="galleryEmpty" data-i18n="gallery.empty">没有发现 Forge Neo 生成的图片</div>
         </div>
       </div>
       <div class="gallery-params" id="galleryParams">
-        <div class="gallery-params-title">图片参数</div>
+        <div class="gallery-params-title" data-i18n="gallery.params_title">图片参数</div>
         <div class="param-grid" id="galleryParamGrid"></div>
       </div>
     </div>
@@ -938,11 +938,11 @@
 <div class="tab-content" id="tab-3">
   <div class="t3-layout">
     <div class="console-box" id="consoleBox">
-      <div class="console-line info"><span class="ts">--:--:--</span>ForgeSide 已就绪，等待启动 Forge NEO...</div>
+      <div class="console-line info"><span class="ts">--:--:--</span><span data-i18n="console.ready">ForgeSide 已就绪，等待启动 Forge NEO...</span></div>
     </div>
     <div class="console-btn-row">
-      <button class="btn-console webui" id="btnOpenWebui" onclick="bridge('openWebui')">打开 WebUI</button>
-      <button class="btn-console" id="btnStopConsole" onclick="stopNeoConfirm()">终止 NEO</button>
+      <button class="btn-console webui" id="btnOpenWebui" onclick="bridge('openWebui')" data-i18n="console.webui_btn">打开 WebUI</button>
+      <button class="btn-console" id="btnStopConsole" onclick="stopNeoConfirm()" data-i18n="console.stop_btn">终止 NEO</button>
     </div>
   </div>
 </div>
@@ -954,38 +954,38 @@
     <!-- ── 版本信息总览 ── -->
     <div class="version-header">
       <div class="version-card local" id="vLocalCard">
-        <div class="vc-label">本地当前版本</div>
+        <div class="vc-label" data-i18n="version.local_label">本地当前版本</div>
         <div class="vc-version" id="vLocalVer">—</div>
         <div class="vc-sub" id="vLocalSub"></div>
       </div>
       <div class="version-card latest" id="vLatestCard">
-        <div class="vc-label">GitHub 最新版本</div>
+        <div class="vc-label" data-i18n="version.latest_label">GitHub 最新版本</div>
         <div class="vc-version" id="vLatestVer">—</div>
         <div class="vc-sub" id="vLatestSub"></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-self:center;">
-        <button class="version-refresh-btn" id="vRefreshBtn" onclick="fetchReleases();refreshLocalVersion()" title="刷新版本列表">
+        <button class="version-refresh-btn" id="vRefreshBtn" onclick="fetchReleases();refreshLocalVersion()" data-i18n-title="version.refresh" title="刷新版本列表">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          刷新
+          <span data-i18n="version.refresh">刷新</span>
         </button>
         <button class="v-upgrade-btn" id="vUpgradeBtn" onclick="showUpgradeConfirm()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
-          升级
+          <span data-i18n="version.upgrade">升级</span>
         </button>
-        <span style="font-size:10.5px;color:var(--text-muted);text-align:center;white-space:nowrap;" id="vUpgradeHint">请选择版本</span>
+        <span style="font-size:10.5px;color:var(--text-muted);text-align:center;white-space:nowrap;" id="vUpgradeHint" data-i18n="version.select_hint">请选择版本</span>
       </div>
     </div>
 
     <!-- ── 发布记录列表 ── -->
     <div class="version-release-list">
       <div class="vrl-header">
-        <span>📦 版本发布记录</span>
+        <span data-i18n="version.releases_header">📦 版本发布记录</span>
         <span class="vrl-count" id="vReleaseCount"></span>
       </div>
       <div class="vrl-scroll" id="vReleaseList">
         <div class="version-error" id="vLoading">
           <div class="ve-icon">🔄</div>
-          <div class="ve-text">正在获取版本信息…</div>
+          <div class="ve-text" data-i18n="version.loading">正在获取版本信息…</div>
         </div>
       </div>
     </div>
@@ -998,67 +998,80 @@
   <div class="t4-layout">
 
     <div class="sg">
-      <div class="sgt">外观</div>
+      <div class="sgt" data-i18n="lang.display">语言 Language 言語</div>
+      <div class="sr">
+        <span class="sl" style="min-width:80px;" data-i18n="lang.display">语言 Language 言語</span>
+        <select class="select-pill" id="languageSelect" onchange="onLanguageChange()" style="flex:1;">
+          <option value="zh-CN" data-i18n="settings.lang_zhCN">简体中文</option>
+          <option value="zh-TW" data-i18n="settings.lang_zhTW">繁体中文</option>
+          <option value="en" data-i18n="settings.lang_en">English</option>
+          <option value="ja" data-i18n="settings.lang_ja">日本語</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sg">
+      <div class="sgt" data-i18n="settings.appearance">外观</div>
       <div class="theme-cards">
         <div class="tcard sel" id="tcardLight" onclick="setTheme(false)">
           <div class="td light"></div>
-          <div><div class="tl">亮色模式</div><div class="tsub">温暖、柔和的日间色调</div></div>
+          <div><div class="tl" data-i18n="settings.light">亮色模式</div><div class="tsub" data-i18n="settings.light_desc">温暖、柔和的日间色调</div></div>
         </div>
         <div class="tcard" id="tcardDark" onclick="setTheme(true)">
           <div class="td dark"></div>
-          <div><div class="tl">暗色模式</div><div class="tsub">深邃、沉浸的夜间色调</div></div>
+          <div><div class="tl" data-i18n="settings.dark">暗色模式</div><div class="tsub" data-i18n="settings.dark_desc">深邃、沉浸的夜间色调</div></div>
         </div>
       </div>
     </div>
 
     <div class="sg">
-      <div class="sgt">启动设置</div>
+      <div class="sgt" data-i18n="settings.launch">启动设置</div>
       <div class="sr" style="gap:16px;">
-        <span class="sl">启动引擎</span>
+        <span class="sl" data-i18n="settings.launch_engine">启动引擎</span>
         <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()" style="flex:1;">
-          <option value="auto">自动（优先直接启动）</option>
-          <option value="direct">直接启动（python launch.py）</option>
-          <option value="bat">Bat 方式（webui.bat）</option>
+          <option value="auto" data-i18n="settings.launch_auto">自动（优先直接启动）</option>
+          <option value="direct" data-i18n="settings.launch_direct">直接启动（python launch.py）</option>
+          <option value="bat" data-i18n="settings.launch_bat">Bat 方式（webui.bat）</option>
         </select>
-        <span class="sl" style="margin-left:4px;">启动模式</span>
+        <span class="sl" style="margin-left:4px;" data-i18n="settings.launch_mode">启动模式</span>
         <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
-          <option value="sdp">SDP（兼容性优先，禁用加速）</option>
-          <option value="sage">Sage（启用 SageAttention 加速）</option>
-          <option value="standard">标准</option>
+          <option value="sdp" data-i18n="settings.launch_sdp">SDP（兼容性优先，禁用加速）</option>
+          <option value="sage" data-i18n="settings.launch_sage">Sage（启用 SageAttention 加速）</option>
+          <option value="standard" data-i18n="settings.launch_standard">标准</option>
         </select>
       </div>
       <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
-      <div class="sh" style="color:var(--accent);margin-top:6px;">如「直接启动」和「Bat 模式」均告失败，请手动将 bat 启动文件复制一份后重命名为「webui.bat」再次尝试</div>
+      <div class="sh" style="color:var(--accent);margin-top:6px;" data-i18n="settings.launch_fallback">如"直接启动"和"Bat模式"均告失败，请手动将启动用bat文件复制一份后重命名为"webui.bat"再次尝试</div>
     </div>
 
     <div class="sg">
-      <div class="sgt">生成提示</div>
+      <div class="sgt" data-i18n="settings.notification">生成提示</div>
       <div class="sr">
         <label class="sl">
           <span class="toggle"><input type="checkbox" id="notificationToggle" onchange="onNotificationToggle()"><span class="ts"></span></span>
-          图片生成完毕时播放提示音
+          <span data-i18n="settings.notif_toggle">图片生成完毕时播放提示音</span>
         </label>
       </div>
       <div class="sr" style="margin-top:10px;">
-        <span class="sl">自定义音效</span>
-        <button class="btn-sm accent" onclick="bridge('pickSound')" id="btnPickSound">选择音频文件…</button>
-        <button class="btn-sm" onclick="resetSound()" id="btnResetSound" style="display:none;">恢复默认</button>
+        <span class="sl" data-i18n="settings.notif_custom">自定义音效</span>
+        <button class="btn-sm accent" onclick="bridge('pickSound')" id="btnPickSound" data-i18n="settings.notif_pick">选择音频文件…</button>
+        <button class="btn-sm" onclick="resetSound()" id="btnResetSound" style="display:none;" data-i18n="settings.notif_reset">恢复默认</button>
       </div>
       <div class="sh" id="notificationHint">开启 — 检测到 output 目录新增 PNG 时播放系统提示音</div>
       <div class="sh" id="soundPathHint" style="display:none;color:var(--accent);"></div>
     </div>
 
     <div class="sg">
-      <div class="sgt">代理服务器</div>
+      <div class="sgt" data-i18n="settings.proxy">代理服务器</div>
       <div class="sr" style="flex-wrap:wrap;gap:8px;">
         <label class="sl" style="white-space:nowrap;">
           <span class="toggle"><input type="checkbox" id="proxyToggle" onchange="onProxyToggle()"><span class="ts"></span></span>
-          代理开关
+          <span data-i18n="settings.proxy_toggle">代理开关</span>
         </label>
-        <input type="text" class="input-pill" id="proxyUrl" value="http://127.0.0.1:7897" onchange="onSettingChange('proxyUrl')" placeholder="代理地址" style="width:260px;flex:none;" />
+        <input type="text" class="input-pill" id="proxyUrl" value="http://127.0.0.1:7897" onchange="onSettingChange('proxyUrl')" data-i18n-placeholder="settings.proxy_ph" placeholder="代理地址" style="width:260px;flex:none;" />
         <div style="margin-left:auto;display:flex;gap:6px;">
-          <button class="btn-sm accent" onclick="testProxyConnection('google')" id="btnProxyGoogle" title="点击测试 Google 连接性">Google</button>
-          <button class="btn-sm accent" onclick="testProxyConnection('huggingface')" id="btnProxyHuggingface" title="点击测试 Hugging Face 连接性">Hugging Face</button>
+          <button class="btn-sm accent" onclick="testProxyConnection('google')" id="btnProxyGoogle" data-i18n-title="settings.proxy_testing_google" title="点击测试 Google 连接性">Google</button>
+          <button class="btn-sm accent" onclick="testProxyConnection('huggingface')" id="btnProxyHuggingface" data-i18n-title="settings.proxy_testing_hf" title="点击测试 Hugging Face 连接性">Hugging Face</button>
         </div>
         <div class="sh" id="proxyTestResult" style="width:100%;"></div>
       </div>
@@ -1066,57 +1079,57 @@
     </div>
 
     <div class="sg">
-      <div class="sgt">文件管理器</div>
+      <div class="sgt" data-i18n="settings.fm">文件管理器</div>
       <div class="sr">
-        <span class="sl">打开文件夹时使用</span>
+        <span class="sl" data-i18n="settings.fm_label">打开文件夹时使用</span>
         <select class="select-pill" id="fileManager" onchange="onFileManagerChange()">
-          <option value="explorer">资源管理器</option>
-          <option value="xyplorer">XYplorer</option>
-          <option value="other">其他</option>
+          <option value="explorer" data-i18n="settings.fm_explorer">资源管理器</option>
+          <option value="xyplorer" data-i18n="settings.fm_xyplorer">XYplorer</option>
+          <option value="other" data-i18n="settings.fm_other">其他</option>
         </select>
       </div>
       <div class="sr" id="fmPathRow" style="display:none;margin-top:10px;">
-        <span class="sl">程序路径</span>
-        <input type="text" class="input-pill" id="customFileManagerPath" onchange="onSettingChange('customFileManagerPath')" placeholder="浏览选择可执行文件…" />
-        <button class="btn-sm accent" onclick="pickFileManagerExe()">浏览…</button>
+        <span class="sl" data-i18n="settings.fm_path">程序路径</span>
+        <input type="text" class="input-pill" id="customFileManagerPath" onchange="onSettingChange('customFileManagerPath')" data-i18n-placeholder="settings.fm_ph" placeholder="浏览选择可执行文件…" />
+        <button class="btn-sm accent" onclick="pickFileManagerExe()" data-i18n="settings.fm_browse">浏览…</button>
       </div>
-      <div class="sh" id="fmHint">使用系统资源管理器打开文件夹</div>
+      <div class="sh" id="fmHint" data-i18n="settings.fm_hint">使用系统资源管理器打开文件夹</div>
     </div>
 
     <div class="sg">
-      <div class="sgt">首页背景图片</div>
+      <div class="sgt" data-i18n="settings.bg">首页背景图片</div>
       <div class="bg-picker-row">
         <div class="bg-preview" id="bgPreview"></div>
         <div>
-          <button class="btn-sm accent" onclick="bridge('pickBg')">选择图片…</button>
-          <button class="btn-sm" onclick="openBgEditor()" style="margin-left:6px;" id="btnAdjustBg">调整位置</button>
-          <button class="btn-sm" onclick="resetToDefaultBg()" style="margin-left:6px;">恢复默认</button>
-          <button class="btn-sm" onclick="clearBg()" style="margin-left:6px;">清除</button>
+          <button class="btn-sm accent" onclick="bridge('pickBg')" data-i18n="settings.bg_select">选择图片…</button>
+          <button class="btn-sm" onclick="openBgEditor()" style="margin-left:6px;" id="btnAdjustBg" data-i18n="settings.bg_adjust">调整位置</button>
+          <button class="btn-sm" onclick="resetToDefaultBg()" style="margin-left:6px;" data-i18n="settings.bg_reset">恢复默认</button>
+          <button class="btn-sm" onclick="clearBg()" style="margin-left:6px;" data-i18n="settings.bg_clear">清除</button>
         </div>
       </div>
-      <div class="sh">选择图片后可点击「调整位置」在预览窗口中用鼠标拖拽和滚轮调整</div>
+      <div class="sh" data-i18n="settings.bg_hint">选择图片后可点击「调整位置」在预览窗口中用鼠标拖拽和滚轮调整</div>
     </div>
 
     <div class="sg">
-      <div class="sgt">图库文件夹</div>
+      <div class="sgt" data-i18n="settings.gallery">图库文件夹</div>
       <div id="galleryFolderList">
-        <div class="sh" style="margin-bottom:8px;">尚未添加任何文件夹</div>
+        <div class="sh" style="margin-bottom:8px;" data-i18n="settings.gallery_empty">尚未添加任何文件夹</div>
       </div>
     </div>
 
     <div class="sg">
-      <div class="sgt">系统信息</div>
-      <button class="btn-sm accent" onclick="showSystemInfo()">📋 查看系统信息</button>
+      <div class="sgt" data-i18n="settings.sysinfo">系统信息</div>
+      <button class="btn-sm accent" onclick="showSystemInfo()" data-i18n="settings.sysinfo_btn">📋 查看系统信息</button>
     </div>
 
     <div class="sg about-card">
       <div class="about-row">
         <span class="about-icon">✦</span>
         <span class="about-title">ForgeSide</span>
-        <span class="about-version">V1.4</span>
+        <span class="about-version">V1.41</span>
       </div>
-      <div class="about-line">本软件为免费软件，不会收取任何费用</div>
-      <div class="about-line">Developed by <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a><a class="github-icon" href="https://github.com/TohnoSeika" title="GitHub"></a></div>
+      <div class="about-line" data-i18n="about.free">本软件为免费软件，不会收取任何费用</div>
+      <div class="about-line"><span data-i18n="about.dev">Developed by</span> <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a><a class="github-icon" href="https://github.com/TohnoSeika" title="GitHub"></a></div>
       <div class="about-line about-minagi">im minagi , im everywhere</div>
     </div>
 
@@ -1128,20 +1141,20 @@
   <div class="bg-editor-backdrop" onclick="cancelBgEdit()"></div>
   <div class="bg-editor-body">
     <div class="bg-editor-toolbar">
-      <span>调整背景位置</span>
+      <span data-i18n="bg.title">调整背景位置</span>
       <span class="spacer"></span>
       <span class="bg-editor-zoom-tag" id="bgEditZoomTag">100%</span>
-      <button class="bg-editor-btn" onclick="bgEditZoomOut()" title="缩小">−</button>
-      <button class="bg-editor-btn" onclick="bgEditZoomIn()" title="放大">+</button>
-      <button class="bg-editor-btn" onclick="resetBgEdit()">重置</button>
-      <button class="bg-editor-btn primary" onclick="confirmBgEdit()">✓ 确认</button>
-      <button class="bg-editor-btn" onclick="cancelBgEdit()">✕ 取消</button>
+      <button class="bg-editor-btn" onclick="bgEditZoomOut()" data-i18n-title="bg.zoom_out" title="缩小">−</button>
+      <button class="bg-editor-btn" onclick="bgEditZoomIn()" data-i18n-title="bg.zoom_in" title="放大">+</button>
+      <button class="bg-editor-btn" onclick="resetBgEdit()" data-i18n="bg.reset">重置</button>
+      <button class="bg-editor-btn primary" onclick="confirmBgEdit()" data-i18n="bg.confirm">✓ 确认</button>
+      <button class="bg-editor-btn" onclick="cancelBgEdit()" data-i18n="bg.cancel">✕ 取消</button>
     </div>
     <div class="bg-editor-viewport no-image" id="bgEditViewport">
       <div class="grid-overlay"></div>
       <div class="crosshair" id="bgEditCrosshair"></div>
     </div>
-    <div class="bg-editor-hint">🖱 拖拽移动图片 · 滚轮缩放 · 十字线标记视口中心</div>
+    <div class="bg-editor-hint" data-i18n="bg.hint">🖱 拖拽移动图片 · 滚轮缩放 · 十字线标记视口中心</div>
   </div>
 </div>
 
@@ -1149,10 +1162,10 @@
 <div class="confirm-overlay" id="sysInfoOverlay" style="display:none;">
   <div class="confirm-backdrop" onclick="document.getElementById('sysInfoOverlay').style.display='none'"></div>
   <div class="confirm-card" style="max-width:620px;text-align:left;max-height:80vh;overflow-y:auto;">
-    <div style="font-size:15px;font-weight:520;margin-bottom:12px;color:var(--accent);">📋 系统信息</div>
+    <div style="font-size:15px;font-weight:520;margin-bottom:12px;color:var(--accent);" data-i18n="sysinfo.title">📋 系统信息</div>
     <div id="sysInfoContent" style="font-family:var(--font-mono);font-size:11.5px;line-height:1.8;color:var(--text);"></div>
     <div style="margin-top:16px;text-align:center;">
-      <button class="btn-sm accent" onclick="document.getElementById('sysInfoOverlay').style.display='none'">关闭</button>
+      <button class="btn-sm accent" onclick="document.getElementById('sysInfoOverlay').style.display='none'" data-i18n="sysinfo.close">关闭</button>
     </div>
   </div>
 </div>
@@ -1161,10 +1174,10 @@
 <div class="confirm-overlay" id="confirmDialog" style="display:none;">
   <div class="confirm-backdrop"></div>
   <div class="confirm-card">
-    <div class="confirm-msg" id="confirmMsg">确定要执行此操作吗？</div>
+    <div class="confirm-msg" id="confirmMsg">...</div>
     <div class="confirm-btns">
-      <button onclick="confirmDismiss()">取消</button>
-      <button class="btn-confirm" id="confirmOkBtn" onclick="confirmAccept()">确认</button>
+      <button onclick="confirmDismiss()" data-i18n="confirm.cancel">取消</button>
+      <button class="btn-confirm" id="confirmOkBtn" onclick="confirmAccept()" data-i18n="confirm.ok">确认</button>
     </div>
   </div>
 </div>
@@ -1198,9 +1211,9 @@
         const json = chrome.webview.hostObjects.sync.forgeSide.ReadImageFromBase64(base64);
         if (json) {
           try { showImageParams(JSON.parse(json)); }
-          catch(pe) { showImageParams({error: 'JSON解析失败: ' + pe.message}); }
+          catch(pe) { showImageParams({error: 'Parse error: ' + pe.message}); }
         }
-      } catch(ex) { showImageParams({error: '解析失败: ' + ex.message}); }
+      } catch(ex) { showImageParams({error: 'Parse failed: ' + ex.message}); }
     };
     reader.readAsDataURL(file);
   });
@@ -1235,10 +1248,10 @@
   function showAlert(msg) {
     document.getElementById('confirmMsg').textContent = msg;
     document.querySelector('#confirmDialog .confirm-btns button:first-child').style.display = 'none';
-    document.getElementById('confirmOkBtn').textContent = '确定';
+    document.getElementById('confirmOkBtn').textContent = t('confirm.alert_ok');
     _confirmCallback = function() {
       document.querySelector('#confirmDialog .confirm-btns button:first-child').style.display = '';
-      document.getElementById('confirmOkBtn').textContent = '确认';
+      document.getElementById('confirmOkBtn').textContent = t('confirm.ok');
     };
     document.getElementById('confirmDialog').style.display = 'flex';
   }
@@ -1259,7 +1272,7 @@
   }
 
   function stopNeoConfirm() {
-    showConfirm('确定要终止 NEO 进程吗？', function() {
+    showConfirm(t('confirm.stop_neo'), function() {
       bridge('stop');
     });
   }
@@ -1272,10 +1285,10 @@
     const launch = document.getElementById('btnLaunch');
 
     dot.className = 'status-dot ' + (running ? 'live' : '');
-    txt.textContent = running ? '运行中' : '未启动';
+    txt.textContent = running ? t('status.running') : t('status.stopped');
 
     launch.classList.toggle('running', running);
-    launch.querySelector('.fn').textContent = running ? '正在运行…' : '启动 Forge NEO';
+    launch.querySelector('.fn').textContent = running ? t('status.run_btn') : t('status.launch_btn');
     updateLaunchHint();
 
     document.getElementById('btnStopConsole').classList.toggle('active', running);
@@ -1299,7 +1312,7 @@
     if (maxIcon) maxIcon.style.display = maximized ? 'none' : '';
     if (restoreIcon) restoreIcon.style.display = maximized ? '' : 'none';
     var btn = document.getElementById('btnMaximize');
-    if (btn) btn.title = maximized ? '还原' : '最大化';
+    if (btn) btn.title = maximized ? t('win.restore') : t('win.maximize');
   }
 
   function escHtml(s) {
@@ -1307,6 +1320,650 @@
     d.textContent = s;
     return d.innerHTML;
   }
+
+  // ═══ i18n 多语言系统 —— 桃华帮 Minagi 写的哦 ═══
+  const i18n = {
+    zhCN: {
+      // ── Tab ──
+      'tab.home': '首页', 'tab.params': '图片参数', 'tab.gallery': '图库',
+      'tab.console': '控制台', 'tab.versions': '版本管理', 'tab.settings': '设置',
+      // ── 状态 ──
+      'status.stopped': '未启动', 'status.running': '运行中',
+      'status.run_btn': '正在运行…', 'status.launch_btn': '启动 Forge NEO',
+      // ── 首页 ──
+      'home.banner.ph': '背景图片区域',
+      'home.banner.hint': '在「设置」中选择图片',
+      'home.tagline': '一个 Forge Neo 启动器',
+      'home.folder.output': '输出目录', 'home.folder.models': '模型',
+      'home.folder.lora': 'Lora', 'home.folder.root': '根目录',
+      'home.env_tag': 'NEO 已识别',
+      'home.running_mode': 'NEO 运行中 · {0}', 'home.idle_mode': '{0} 模式',
+      // ── 图片参数 ──
+      'params.dropzone': '点击这里载入图片，或拖曳图片到此页面任意区域',
+      'params.dropzone.sub': '支持 WebUI / Forge / ComfyUI 生成的 PNG',
+      'params.preview': '预览',
+      'params.raw_data': '原始数据',
+      // ── 图库 ──
+      'gallery.search_ph': '搜索 prompt…（如 1girl, masterpiece）',
+      'gallery.size': '尺寸',
+      'gallery.size_small': '小', 'gallery.size_medium': '中', 'gallery.size_large': '大',
+      'gallery.empty': '没有发现 Forge Neo 生成的图片',
+      'gallery.params_title': '图片参数',
+      'gallery.no_params': '无参数信息',
+      // ── 控制台 ──
+      'console.ready': 'ForgeSide 已就绪，等待启动 Forge NEO...',
+      'console.webui_btn': '打开 WebUI', 'console.stop_btn': '终止 NEO',
+      // ── 版本管理 ──
+      'version.local_label': '本地当前版本',
+      'version.latest_label': 'GitHub 最新版本',
+      'version.refresh': '刷新',
+      'version.upgrade': '升级',
+      'version.select_hint': '请选择版本',
+      'version.releases_header': '📦 版本发布记录',
+      'version.no_local': '未能获取本地版本信息',
+      'version.local_sub': 'Forge NEO 当前安装的版本',
+      'version.loading': '正在获取版本信息…',
+      'version.load_failed': '加载失败',
+      'version.no_releases': '暂无发布版本',
+      'version.badge_current': '本地当前版本',
+      'version.badge_newer': '有新版本',
+      'version.badge_prerelease': '预发布',
+      'version.expand': '展开 ∨',
+      'version.collapse': '收起 ∧',
+      'version.select_title': '选择此版本进行升级',
+      'version.selected': '已选择：{0}',
+      'version.upgrading_to': '正在升级到 {0}，请稍候…',
+      'version.fetch_error': '获取版本信息失败：{0}',
+      'version.retry': '重试',
+      'version.latest_available': '有新版本可用',
+      'version.latest_current': '✓ 已是最新版本',
+      'version.no_data': '暂无数据',
+      // ── 设置 ──
+      'settings.appearance': '外观',
+      'settings.light': '亮色模式', 'settings.light_desc': '温暖、柔和的日间色调',
+      'settings.dark': '暗色模式', 'settings.dark_desc': '深邃、沉浸的夜间色调',
+      'settings.launch': '启动设置',
+      'settings.launch_engine': '启动引擎',
+      'settings.launch_auto': '自动（优先直接启动）',
+      'settings.launch_direct': '直接启动（python launch.py）',
+      'settings.launch_bat': 'Bat 方式（webui.bat）',
+      'settings.launch_mode': '启动模式',
+      'settings.launch_sdp': 'SDP（兼容性优先，禁用加速）',
+      'settings.launch_sage': 'Sage（启用 SageAttention 加速）',
+      'settings.launch_standard': '标准',
+      'settings.launch_hint_auto': '自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式',
+      'settings.launch_hint_direct': '强制使用 python launch.py 直接启动',
+      'settings.launch_hint_bat': '强制使用 webui.bat 方式启动',
+      'settings.launch_fallback': '如"直接启动"和"Bat模式"均告失败，请手动将启动用bat文件复制一份后重命名为"webui.bat"再次尝试',
+      'settings.notification': '生成提示',
+      'settings.notif_toggle': '图片生成完毕时播放提示音',
+      'settings.notif_custom': '自定义音效',
+      'settings.notif_pick': '选择音频文件…',
+      'settings.notif_reset': '恢复默认',
+      'settings.notif_off': '关闭 — 不会播放提示音',
+      'settings.notif_on_custom': '<span style="color:var(--accent);">● 已开启</span> — 使用自定义音效',
+      'settings.notif_on_default': '<span style="color:var(--console-green);">● 已开启</span> — 使用系统默认提示音',
+      'settings.proxy': '代理服务器',
+      'settings.proxy_toggle': '代理开关',
+      'settings.proxy_ph': '代理地址',
+      'settings.proxy_hint_on': '<span style="color:var(--console-green);">● 已开启</span> — NEO 网络流量将走代理，重启后生效',
+      'settings.proxy_hint_off': '关闭 — NEO 网络流量将直接连接',
+      'settings.proxy_testing': '⏳ 正在测试连接 {0}…',
+      'settings.proxy_test_btn': '测试中 请稍后…',
+      'settings.proxy_success': '<span style="color:var(--console-green);">✅ 你可以正常连接 {0}</span>',
+      'settings.proxy_fail': '<span style="color:var(--console-error);">❌ 无法连接 {0}</span>',
+      'settings.proxy_err': '<span style="color:var(--console-error);">❌ 测试出错：{0}</span>',
+      'settings.fm': '文件管理器',
+      'settings.fm_label': '打开文件夹时使用',
+      'settings.fm_explorer': '资源管理器',
+      'settings.fm_xyplorer': 'XYplorer',
+      'settings.fm_other': '其他',
+      'settings.fm_path': '程序路径',
+      'settings.fm_ph': '浏览选择可执行文件…',
+      'settings.fm_browse': '浏览…',
+      'settings.fm_hint': '使用系统资源管理器打开文件夹',
+      'settings.bg': '首页背景图片',
+      'settings.bg_select': '选择图片…',
+      'settings.bg_adjust': '调整位置',
+      'settings.bg_reset': '恢复默认',
+      'settings.bg_clear': '清除',
+      'settings.bg_hint': '选择图片后可点击「调整位置」在预览窗口中用鼠标拖拽和滚轮调整',
+      'settings.gallery': '图库文件夹',
+      'settings.gallery_empty': '尚未添加任何文件夹',
+      'settings.gallery_refresh': '🔄 刷新此文件夹',
+      'settings.gallery_clear': '🗑 清除缓存',
+      'settings.gallery_hint': '基于对运行效率的考量，目前不支持添加其他文件夹路径。文件夹图片越多，刷新速度越慢。',
+      'settings.sysinfo': '系统信息',
+      'settings.sysinfo_btn': '📋 查看系统信息',
+      'settings.language': '语言 Language 言語',
+      'settings.lang_zhCN': '简体中文',
+      'settings.lang_zhTW': '繁体中文',
+      'settings.lang_en': 'English',
+      'settings.lang_ja': '日本語',
+      // ── 关于 ──
+      'about.free': '本软件为免费软件，不会收取任何费用',
+      'about.dev': 'Developed by',
+      // ── 背景编辑器 ──
+      'bg.title': '调整背景位置',
+      'bg.zoom_out': '−', 'bg.zoom_in': '+',
+      'bg.reset': '重置', 'bg.confirm': '✓ 确认', 'bg.cancel': '✕ 取消',
+      'bg.hint': '🖱 拖拽移动图片 · 滚轮缩放 · 十字线标记视口中心',
+      // ── 系统信息 ──
+      'sysinfo.title': '📋 系统信息',
+      'sysinfo.close': '关闭',
+      'sysinfo.os': '操作系统', 'sysinfo.cpu': 'CPU', 'sysinfo.gpu': '显卡',
+      'sysinfo.ram': '内存', 'sysinfo.disk': '磁盘', 'sysinfo.screen': '屏幕分辨率',
+      'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
+      'sysinfo.no_data': '无法获取系统信息',
+      'sysinfo.err': '获取失败: {0}',
+      // ── 确认弹窗 ──
+      'confirm.cancel': '取消', 'confirm.ok': '确认', 'confirm.alert_ok': '确定',
+      'confirm.stop_neo': '确定要终止 NEO 进程吗？',
+      'confirm.refresh_all': '确定要刷新全部图库文件夹吗？\n将重新扫描所有 PNG 并生成缩略图。',
+      'confirm.refresh_done': '图库已刷新！\n缩略图正在后台生成，稍候切换到图库 tab 即可查看。',
+      'confirm.refresh_fail': '刷新失败：{0}',
+      'confirm.refresh_folder': '确定要刷新此文件夹吗？\n「{0}」',
+      'confirm.refresh_folder_done': '已刷新！缩略图正在后台生成。',
+      'confirm.clear_cache': '确定要清除所有缩略图缓存吗？\n清除后需要重新「刷新全部」才能显示图片。',
+      'confirm.clear_done': '缓存已清除。\n请点击「刷新全部」重新扫描。',
+      'confirm.remove_folder': '确定要移除该图库文件夹吗？\n「{0}」\n不会删除原文件，仅从 ForgeSide 中移除。',
+      'confirm.upgrade': '确定升级/更换到此版本吗？',
+      'confirm.same_ver': '不能在相同版本间切换！',
+      'confirm.upgrade_fail': '升级失败：{0}',
+      // ── 窗口按钮 ──
+      'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '还原', 'win.close': '关闭',
+      // ── 复制按钮 ──
+      'copy.btn': '复制',
+      // ── 声音提示 ──
+      'sound.current': '当前音效：{0}',
+      // ── 语言 ──
+      'lang.display': '语言 Language 言語',
+    },
+    zhTW: {
+      'tab.home': '首頁', 'tab.params': '圖片參數', 'tab.gallery': '圖庫',
+      'tab.console': '控制台', 'tab.versions': '版本管理', 'tab.settings': '設定',
+      'status.stopped': '未啟動', 'status.running': '執行中',
+      'status.run_btn': '正在執行…', 'status.launch_btn': '啟動 Forge NEO',
+      'home.banner.ph': '背景圖片區域',
+      'home.banner.hint': '在「設定」中選擇圖片',
+      'home.tagline': '一個 Forge Neo 啟動器',
+      'home.folder.output': '輸出目錄', 'home.folder.models': '模型',
+      'home.folder.lora': 'Lora', 'home.folder.root': '根目錄',
+      'home.env_tag': 'NEO 已识别',
+      'home.running_mode': 'NEO 執行中 · {0}', 'home.idle_mode': '{0} 模式',
+      'params.dropzone': '點擊此處載入圖片，或拖曳圖片到此頁面任意區域',
+      'params.dropzone.sub': '支援 WebUI / Forge / ComfyUI 生成的 PNG',
+      'params.preview': '預覽',
+      'params.raw_data': '原始數據',
+      'gallery.search_ph': '搜尋 prompt…（如 1girl, masterpiece）',
+      'gallery.size': '尺寸',
+      'gallery.size_small': '小', 'gallery.size_medium': '中', 'gallery.size_large': '大',
+      'gallery.empty': '沒有發現 Forge Neo 生成的圖片',
+      'gallery.params_title': '圖片參數',
+      'gallery.no_params': '無參數資訊',
+      'console.ready': 'ForgeSide 已就緒，等待啟動 Forge NEO...',
+      'console.webui_btn': '打開 WebUI', 'console.stop_btn': '終止 NEO',
+      'version.local_label': '本地目前版本',
+      'version.latest_label': 'GitHub 最新版本',
+      'version.refresh': '重新整理',
+      'version.upgrade': '升級',
+      'version.select_hint': '請選擇版本',
+      'version.releases_header': '📦 版本發佈記錄',
+      'version.no_local': '未能獲取本地版本資訊',
+      'version.local_sub': 'Forge NEO 目前安裝的版本',
+      'version.loading': '正在獲取版本資訊…',
+      'version.load_failed': '載入失敗',
+      'version.no_releases': '暫無發佈版本',
+      'version.badge_current': '本地目前版本',
+      'version.badge_newer': '有新版本',
+      'version.badge_prerelease': '預發佈',
+      'version.expand': '展開 ∨',
+      'version.collapse': '收起 ∧',
+      'version.select_title': '選擇此版本進行升級',
+      'version.selected': '已選擇：{0}',
+      'version.upgrading_to': '正在升級到 {0}，請稍候…',
+      'version.fetch_error': '獲取版本資訊失敗：{0}',
+      'version.retry': '重試',
+      'version.latest_available': '有新版本可用',
+      'version.latest_current': '✓ 已是最新版本',
+      'version.no_data': '暫無數據',
+      'settings.appearance': '外觀',
+      'settings.light': '亮色模式', 'settings.light_desc': '溫暖、柔和的日間色調',
+      'settings.dark': '暗色模式', 'settings.dark_desc': '深邃、沉浸的夜間色調',
+      'settings.launch': '啟動設定',
+      'settings.launch_engine': '啟動引擎',
+      'settings.launch_auto': '自動（優先直接啟動）',
+      'settings.launch_direct': '直接啟動（python launch.py）',
+      'settings.launch_bat': 'Bat 方式（webui.bat）',
+      'settings.launch_mode': '啟動模式',
+      'settings.launch_sdp': 'SDP（相容性優先，禁用加速）',
+      'settings.launch_sage': 'Sage（啟用 SageAttention 加速）',
+      'settings.launch_standard': '標準',
+      'settings.launch_hint_auto': '自動模式：優先嘗試直接 python launch.py，找不到 Python 環境時自動回退到 bat 方式',
+      'settings.launch_hint_direct': '強制使用 python launch.py 直接啟動',
+      'settings.launch_hint_bat': '強制使用 webui.bat 方式啟動',
+      'settings.launch_fallback': '如"直接啟動"和"Bat模式"均告失敗，請手動將啟動用bat文件複製一份後重新命名為"webui.bat"再次嘗試',
+      'settings.notification': '生成提示',
+      'settings.notif_toggle': '圖片生成完畢時播放提示音',
+      'settings.notif_custom': '自訂音效',
+      'settings.notif_pick': '選擇音頻文件…',
+      'settings.notif_reset': '恢復預設',
+      'settings.notif_off': '關閉 — 不會播放提示音',
+      'settings.notif_on_custom': '<span style="color:var(--accent);">● 已開啟</span> — 使用自訂音效',
+      'settings.notif_on_default': '<span style="color:var(--console-green);">● 已開啟</span> — 使用系統預設提示音',
+      'settings.proxy': '代理伺服器',
+      'settings.proxy_toggle': '代理開關',
+      'settings.proxy_ph': '代理位址',
+      'settings.proxy_hint_on': '<span style="color:var(--console-green);">● 已開啟</span> — NEO 網路流量將走代理，重啟後生效',
+      'settings.proxy_hint_off': '關閉 — NEO 網路流量將直接連接',
+      'settings.proxy_testing': '⏳ 正在測試連接 {0}…',
+      'settings.proxy_test_btn': '測試中 請稍後…',
+      'settings.proxy_success': '<span style="color:var(--console-green);">✅ 你可以正常連接 {0}</span>',
+      'settings.proxy_fail': '<span style="color:var(--console-error);">❌ 無法連接 {0}</span>',
+      'settings.proxy_err': '<span style="color:var(--console-error);">❌ 測試出錯：{0}</span>',
+      'settings.fm': '檔案管理器',
+      'settings.fm_label': '打開資料夾時使用',
+      'settings.fm_explorer': '檔案總管',
+      'settings.fm_xyplorer': 'XYplorer',
+      'settings.fm_other': '其他',
+      'settings.fm_path': '程式路徑',
+      'settings.fm_ph': '瀏覽選擇可執行文件…',
+      'settings.fm_browse': '瀏覽…',
+      'settings.fm_hint': '使用系統檔案總管打開資料夾',
+      'settings.bg': '首頁背景圖片',
+      'settings.bg_select': '選擇圖片…',
+      'settings.bg_adjust': '調整位置',
+      'settings.bg_reset': '恢復預設',
+      'settings.bg_clear': '清除',
+      'settings.bg_hint': '選擇圖片後可點擊「調整位置」在預覽視窗中用滑鼠拖拽和滾輪調整',
+      'settings.gallery': '圖庫資料夾',
+      'settings.gallery_empty': '尚未添加任何資料夾',
+      'settings.gallery_refresh': '🔄 重新整理此資料夾',
+      'settings.gallery_clear': '🗑 清除快取',
+      'settings.gallery_hint': '基於對運行效率的考量，目前不支援添加其他資料夾路徑。資料夾圖片越多，重新整理速度越慢。',
+      'settings.sysinfo': '系統資訊',
+      'settings.sysinfo_btn': '📋 查看系統資訊',
+      'settings.language': '語言 Language 言語',
+      'settings.lang_zhCN': '简体中文',
+      'settings.lang_zhTW': '繁體中文',
+      'settings.lang_en': 'English',
+      'settings.lang_ja': '日本語',
+      'about.free': '本軟體為免費軟體，不會收取任何費用',
+      'about.dev': 'Developed by',
+      'bg.title': '調整背景位置',
+      'bg.zoom_out': '−', 'bg.zoom_in': '+',
+      'bg.reset': '重設', 'bg.confirm': '✓ 確認', 'bg.cancel': '✕ 取消',
+      'bg.hint': '🖱 拖曳移動圖片 · 滾輪縮放 · 十字線標記視口中心',
+      'sysinfo.title': '📋 系統資訊',
+      'sysinfo.close': '關閉',
+      'sysinfo.os': '作業系統', 'sysinfo.cpu': 'CPU', 'sysinfo.gpu': '顯示卡',
+      'sysinfo.ram': '記憶體', 'sysinfo.disk': '磁碟', 'sysinfo.screen': '螢幕解析度',
+      'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
+      'sysinfo.no_data': '無法取得系統資訊',
+      'sysinfo.err': '取得失敗: {0}',
+      'confirm.cancel': '取消', 'confirm.ok': '確認', 'confirm.alert_ok': '確定',
+      'confirm.stop_neo': '確定要終止 NEO 程序嗎？',
+      'confirm.refresh_all': '確定要重新整理全部圖庫資料夾嗎？\n將重新掃描所有 PNG 並生成縮圖。',
+      'confirm.refresh_done': '圖庫已重新整理！\n縮圖正在背景生成，稍候切換到圖庫 tab 即可查看。',
+      'confirm.refresh_fail': '重新整理失敗：{0}',
+      'confirm.refresh_folder': '確定要重新整理此資料夾嗎？\n「{0}」',
+      'confirm.refresh_folder_done': '已重新整理！縮圖正在背景生成。',
+      'confirm.clear_cache': '確定要清除所有縮圖快取嗎？\n清除後需要重新「重新整理全部」才能顯示圖片。',
+      'confirm.clear_done': '快取已清除。\n請點擊「重新整理全部」重新掃描。',
+      'confirm.remove_folder': '確定要移除此圖庫資料夾嗎？\n「{0}」\n不會刪除原檔案，僅從 ForgeSide 中移除。',
+      'confirm.upgrade': '確定升級/更換到此版本嗎？',
+      'confirm.same_ver': '不能在相同版本間切換！',
+      'confirm.upgrade_fail': '升級失敗：{0}',
+      'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '還原', 'win.close': '關閉',
+      'copy.btn': '複製',
+      'sound.current': '目前音效：{0}',
+      'lang.display': '語言 Language 言語',
+    },
+    en: {
+      'tab.home': 'Home', 'tab.params': 'Image Params', 'tab.gallery': 'Gallery',
+      'tab.console': 'Console', 'tab.versions': 'Versions', 'tab.settings': 'Settings',
+      'status.stopped': 'Stopped', 'status.running': 'Running',
+      'status.run_btn': 'Running…', 'status.launch_btn': 'Launch Forge NEO',
+      'home.banner.ph': 'Background Image Area',
+      'home.banner.hint': 'Choose an image in Settings',
+      'home.tagline': 'A Forge Neo Launcher',
+      'home.folder.output': 'Output', 'home.folder.models': 'Models',
+      'home.folder.lora': 'Lora', 'home.folder.root': 'Root',
+      'home.env_tag': 'NEO Detected',
+      'home.running_mode': 'NEO Running · {0}', 'home.idle_mode': '{0} Mode',
+      'params.dropzone': 'Click to load an image, or drop a PNG anywhere',
+      'params.dropzone.sub': 'Supports WebUI / Forge / ComfyUI PNGs',
+      'params.preview': 'Preview',
+      'params.raw_data': 'Raw Data',
+      'gallery.search_ph': 'Search prompt… (e.g. 1girl, masterpiece)',
+      'gallery.size': 'Size',
+      'gallery.size_small': 'Small', 'gallery.size_medium': 'Medium', 'gallery.size_large': 'Large',
+      'gallery.empty': 'No Forge Neo images found',
+      'gallery.params_title': 'Image Params',
+      'gallery.no_params': 'No parameter info',
+      'console.ready': 'ForgeSide ready. Waiting to launch Forge NEO...',
+      'console.webui_btn': 'Open WebUI', 'console.stop_btn': 'Stop NEO',
+      'version.local_label': 'Local Version',
+      'version.latest_label': 'Latest on GitHub',
+      'version.refresh': 'Refresh',
+      'version.upgrade': 'Upgrade',
+      'version.select_hint': 'Select a version',
+      'version.releases_header': '📦 Releases',
+      'version.no_local': 'Could not get local version',
+      'version.local_sub': 'Currently installed Forge NEO version',
+      'version.loading': 'Fetching version info…',
+      'version.load_failed': 'Load failed',
+      'version.no_releases': 'No releases yet',
+      'version.badge_current': 'Current',
+      'version.badge_newer': 'Newer Available',
+      'version.badge_prerelease': 'Pre-release',
+      'version.expand': 'Expand ∨',
+      'version.collapse': 'Collapse ∧',
+      'version.select_title': 'Select this version to upgrade',
+      'version.selected': 'Selected: {0}',
+      'version.upgrading_to': 'Upgrading to {0}…',
+      'version.fetch_error': 'Failed to fetch releases: {0}',
+      'version.retry': 'Retry',
+      'version.latest_available': 'New version available',
+      'version.latest_current': '✓ Up to date',
+      'version.no_data': 'No data',
+      'settings.appearance': 'Appearance',
+      'settings.light': 'Light Mode', 'settings.light_desc': 'Warm, gentle daytime colors',
+      'settings.dark': 'Dark Mode', 'settings.dark_desc': 'Deep, immersive nighttime colors',
+      'settings.launch': 'Launch Settings',
+      'settings.launch_engine': 'Engine',
+      'settings.launch_auto': 'Auto (prefer direct launch)',
+      'settings.launch_direct': 'Direct (python launch.py)',
+      'settings.launch_bat': 'Bat (webui.bat)',
+      'settings.launch_mode': 'Launch Mode',
+      'settings.launch_sdp': 'SDP (compatibility, no acceleration)',
+      'settings.launch_sage': 'Sage (with SageAttention acceleration)',
+      'settings.launch_standard': 'Standard',
+      'settings.launch_hint_auto': 'Auto: tries direct launch first, falls back to bat if Python is not found',
+      'settings.launch_hint_direct': 'Force direct launch with python launch.py',
+      'settings.launch_hint_bat': 'Force launch via webui.bat',
+      'settings.launch_fallback': 'If both methods fail, copy your launch bat file and rename it to "webui.bat" to try again.',
+      'settings.notification': 'Notifications',
+      'settings.notif_toggle': 'Play sound when image generation completes',
+      'settings.notif_custom': 'Custom Sound',
+      'settings.notif_pick': 'Select Audio File…',
+      'settings.notif_reset': 'Reset to Default',
+      'settings.notif_off': 'Off — No notification sound',
+      'settings.notif_on_custom': '<span style="color:var(--accent);">● On</span> — Using custom sound',
+      'settings.notif_on_default': '<span style="color:var(--console-green);">● On</span> — Using system sound',
+      'settings.proxy': 'Proxy',
+      'settings.proxy_toggle': 'Enable Proxy',
+      'settings.proxy_ph': 'Proxy Address',
+      'settings.proxy_hint_on': '<span style="color:var(--console-green);">● On</span> — NEO traffic will use proxy (restart to apply)',
+      'settings.proxy_hint_off': 'Off — NEO will connect directly',
+      'settings.proxy_testing': '⏳ Testing connection to {0}…',
+      'settings.proxy_test_btn': 'Testing…',
+      'settings.proxy_success': '<span style="color:var(--console-green);">✅ Connected to {0}</span>',
+      'settings.proxy_fail': '<span style="color:var(--console-error);">❌ Cannot connect to {0}</span>',
+      'settings.proxy_err': '<span style="color:var(--console-error);">❌ Test error: {0}</span>',
+      'settings.fm': 'File Manager',
+      'settings.fm_label': 'Open folders with',
+      'settings.fm_explorer': 'Explorer',
+      'settings.fm_xyplorer': 'XYplorer',
+      'settings.fm_other': 'Other',
+      'settings.fm_path': 'Program Path',
+      'settings.fm_ph': 'Browse for executable…',
+      'settings.fm_browse': 'Browse…',
+      'settings.fm_hint': 'Using system file explorer',
+      'settings.bg': 'Home Background',
+      'settings.bg_select': 'Select Image…',
+      'settings.bg_adjust': 'Adjust Position',
+      'settings.bg_reset': 'Reset to Default',
+      'settings.bg_clear': 'Clear',
+      'settings.bg_hint': 'After selecting an image, click "Adjust Position" to drag and zoom',
+      'settings.gallery': 'Gallery Folders',
+      'settings.gallery_empty': 'No folders added yet',
+      'settings.gallery_refresh': '🔄 Refresh this folder',
+      'settings.gallery_clear': '🗑 Clear Cache',
+      'settings.gallery_hint': 'For performance reasons, additional folder paths are not supported. The more images a folder contains, the slower the refresh.',
+      'settings.sysinfo': 'System Info',
+      'settings.sysinfo_btn': '📋 View System Info',
+      'settings.language': '语言 Language 言語',
+      'settings.lang_zhCN': '简体中文',
+      'settings.lang_zhTW': '繁體中文',
+      'settings.lang_en': 'English',
+      'settings.lang_ja': '日本語',
+      'about.free': 'This software is free and will never charge any fees',
+      'about.dev': 'Developed by',
+      'bg.title': 'Adjust Background Position',
+      'bg.zoom_out': '−', 'bg.zoom_in': '+',
+      'bg.reset': 'Reset', 'bg.confirm': '✓ Confirm', 'bg.cancel': '✕ Cancel',
+      'bg.hint': '🖱 Drag to move · Scroll to zoom · Crosshair marks center',
+      'sysinfo.title': '📋 System Info',
+      'sysinfo.close': 'Close',
+      'sysinfo.os': 'OS', 'sysinfo.cpu': 'CPU', 'sysinfo.gpu': 'GPU',
+      'sysinfo.ram': 'RAM', 'sysinfo.disk': 'Disk', 'sysinfo.screen': 'Resolution',
+      'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
+      'sysinfo.no_data': 'Unable to fetch system info',
+      'sysinfo.err': 'Fetch error: {0}',
+      'confirm.cancel': 'Cancel', 'confirm.ok': 'Confirm', 'confirm.alert_ok': 'OK',
+      'confirm.stop_neo': 'Stop Forge NEO process?',
+      'confirm.refresh_all': 'Refresh all gallery folders?\nThis will rescan all PNGs and regenerate thumbnails.',
+      'confirm.refresh_done': 'Gallery refreshed!\nThumbnails are being generated in the background.',
+      'confirm.refresh_fail': 'Refresh failed: {0}',
+      'confirm.refresh_folder': 'Refresh this folder?\n「{0}」',
+      'confirm.refresh_folder_done': 'Refreshed! Thumbnails are being generated.',
+      'confirm.clear_cache': 'Clear all thumbnail caches?\nYou will need to refresh to see images again.',
+      'confirm.clear_done': 'Cache cleared.\nClick "Refresh All" to rescan.',
+      'confirm.remove_folder': 'Remove this gallery folder?\n「{0}」\nThe source files will not be deleted.',
+      'confirm.upgrade': 'Upgrade/switch to this version?',
+      'confirm.same_ver': 'Cannot switch to the same version!',
+      'confirm.upgrade_fail': 'Upgrade failed: {0}',
+      'win.minimize': 'Minimize', 'win.maximize': 'Maximize', 'win.restore': 'Restore', 'win.close': 'Close',
+      'copy.btn': 'Copy',
+      'sound.current': 'Current sound: {0}',
+      'lang.display': '语言 Language 言語',
+    },
+    ja: {
+      'tab.home': 'ホーム', 'tab.params': '画像パラメータ', 'tab.gallery': 'ギャラリー',
+      'tab.console': 'コンソール', 'tab.versions': 'バージョン', 'tab.settings': '設定',
+      'status.stopped': '停止中', 'status.running': '実行中',
+      'status.run_btn': '実行中…', 'status.launch_btn': 'Forge NEO 起動',
+      'home.banner.ph': '背景画像エリア',
+      'home.banner.hint': '設定で画像を選択',
+      'home.tagline': 'Forge Neo ランチャー',
+      'home.folder.output': '出力先', 'home.folder.models': 'モデル',
+      'home.folder.lora': 'Lora', 'home.folder.root': 'ルート',
+      'home.env_tag': 'NEO 検出済み',
+      'home.running_mode': 'NEO 実行中 · {0}', 'home.idle_mode': '{0} モード',
+      'params.dropzone': 'クリックして画像を読み込むか、PNG をドロップ',
+      'params.dropzone.sub': 'WebUI / Forge / ComfyUI の PNG に対応',
+      'params.preview': 'プレビュー',
+      'params.raw_data': '生データ',
+      'gallery.search_ph': 'プロンプト検索…（例: 1girl, masterpiece）',
+      'gallery.size': 'サイズ',
+      'gallery.size_small': '小', 'gallery.size_medium': '中', 'gallery.size_large': '大',
+      'gallery.empty': 'Forge Neo の画像が見つかりません',
+      'gallery.params_title': '画像パラメータ',
+      'gallery.no_params': 'パラメータ情報がありません',
+      'console.ready': 'ForgeSide 準備完了。Forge NEO の起動を待っています…',
+      'console.webui_btn': 'WebUI を開く', 'console.stop_btn': 'NEO 停止',
+      'version.local_label': 'ローカル版',
+      'version.latest_label': 'GitHub 最新版',
+      'version.refresh': '更新',
+      'version.upgrade': 'アップグレード',
+      'version.select_hint': 'バージョンを選択',
+      'version.releases_header': '📦 リリース一覧',
+      'version.no_local': 'ローカル版の情報を取得できません',
+      'version.local_sub': '現在インストールされている Forge NEO のバージョン',
+      'version.loading': 'バージョン情報を取得中…',
+      'version.load_failed': '読み込み失敗',
+      'version.no_releases': 'リリースがありません',
+      'version.badge_current': '現在のバージョン',
+      'version.badge_newer': '新バージョンあり',
+      'version.badge_prerelease': 'プレリリース',
+      'version.expand': '展開 ∨',
+      'version.collapse': '折り畳む ∧',
+      'version.select_title': 'このバージョンを選択',
+      'version.selected': '選択中：{0}',
+      'version.upgrading_to': '{0} にアップグレード中…',
+      'version.fetch_error': 'リリースの取得に失敗：{0}',
+      'version.retry': '再試行',
+      'version.latest_available': '新しいバージョンがあります',
+      'version.latest_current': '✓ 最新です',
+      'version.no_data': 'データがありません',
+      'settings.appearance': '外観',
+      'settings.light': 'ライトモード', 'settings.light_desc': '暖かく優しい日中色',
+      'settings.dark': 'ダークモード', 'settings.dark_desc': '深く落ち着いた夜間色',
+      'settings.launch': '起動設定',
+      'settings.launch_engine': '起動エンジン',
+      'settings.launch_auto': '自動（直接起動を優先）',
+      'settings.launch_direct': '直接起動（python launch.py）',
+      'settings.launch_bat': 'Bat 方式（webui.bat）',
+      'settings.launch_mode': '起動モード',
+      'settings.launch_sdp': 'SDP（互換性優先、加速無効）',
+      'settings.launch_sage': 'Sage（SageAttention 加速有効）',
+      'settings.launch_standard': '標準',
+      'settings.launch_hint_auto': '自動：python launch.py を優先し、Python が見つからない場合は bat にフォールバック',
+      'settings.launch_hint_direct': 'python launch.py で直接起動',
+      'settings.launch_hint_bat': 'webui.bat で起動',
+      'settings.launch_fallback': 'どちらの方法も失敗した場合、起動用のbatファイルをコピーして"webui.bat"にリネームしてもう一度お試しください。',
+      'settings.notification': '通知',
+      'settings.notif_toggle': '画像生成完了時に音を鳴らす',
+      'settings.notif_custom': 'カスタム音',
+      'settings.notif_pick': '音声ファイルを選択…',
+      'settings.notif_reset': 'デフォルトに戻す',
+      'settings.notif_off': 'オフ — 通知音は鳴りません',
+      'settings.notif_on_custom': '<span style="color:var(--accent);">● オン</span> — カスタム音を使用',
+      'settings.notif_on_default': '<span style="color:var(--console-green);">● オン</span> — システム音を使用',
+      'settings.proxy': 'プロキシ',
+      'settings.proxy_toggle': 'プロキシを有効にする',
+      'settings.proxy_ph': 'プロキシアドレス',
+      'settings.proxy_hint_on': '<span style="color:var(--console-green);">● オン</span> — NEO の通信はプロキシ経由（再起動で有効）',
+      'settings.proxy_hint_off': 'オフ — NEO は直接接続',
+      'settings.proxy_testing': '⏳ {0} への接続をテスト中…',
+      'settings.proxy_test_btn': 'テスト中…',
+      'settings.proxy_success': '<span style="color:var(--console-green);">✅ {0} に接続できました</span>',
+      'settings.proxy_fail': '<span style="color:var(--console-error);">❌ {0} に接続できません</span>',
+      'settings.proxy_err': '<span style="color:var(--console-error);">❌ テストエラー：{0}</span>',
+      'settings.fm': 'ファイルマネージャー',
+      'settings.fm_label': 'フォルダを開くのに使用',
+      'settings.fm_explorer': 'エクスプローラー',
+      'settings.fm_xyplorer': 'XYplorer',
+      'settings.fm_other': 'その他',
+      'settings.fm_path': 'プログラムパス',
+      'settings.fm_ph': '実行ファイルを選択…',
+      'settings.fm_browse': '参照…',
+      'settings.fm_hint': 'システムのエクスプローラーを使用',
+      'settings.bg': 'ホーム背景画像',
+      'settings.bg_select': '画像を選択…',
+      'settings.bg_adjust': '位置調整',
+      'settings.bg_reset': 'デフォルトに戻す',
+      'settings.bg_clear': 'クリア',
+      'settings.bg_hint': '画像選択後、「位置調整」をクリックしてドラッグ＆ズーム調整',
+      'settings.gallery': 'ギャラリーフォルダ',
+      'settings.gallery_empty': 'フォルダが追加されていません',
+      'settings.gallery_refresh': '🔄 このフォルダを更新',
+      'settings.gallery_clear': '🗑 キャッシュ削除',
+      'settings.gallery_hint': '実行効率の観点から、他のフォルダパスの追加はサポートされていません。フォルダ内の画像が多いほど、リフレッシュ速度が遅くなります。',
+      'settings.sysinfo': 'システム情報',
+      'settings.sysinfo_btn': '📋 システム情報を表示',
+      'settings.language': '语言 Language 言語',
+      'settings.lang_zhCN': '简体中文',
+      'settings.lang_zhTW': '繁體中文',
+      'settings.lang_en': 'English',
+      'settings.lang_ja': '日本語',
+      'about.free': 'このソフトウェアは無料で、料金は一切かかりません',
+      'about.dev': 'Developed by',
+      'bg.title': '背景位置を調整',
+      'bg.zoom_out': '−', 'bg.zoom_in': '+',
+      'bg.reset': 'リセット', 'bg.confirm': '✓ 確認', 'bg.cancel': '✕ キャンセル',
+      'bg.hint': '🖱 ドラッグで移動 · ホイールでズーム · 十字線が中心',
+      'sysinfo.title': '📋 システム情報',
+      'sysinfo.close': '閉じる',
+      'sysinfo.os': 'OS', 'sysinfo.cpu': 'CPU', 'sysinfo.gpu': 'GPU',
+      'sysinfo.ram': 'RAM', 'sysinfo.disk': 'ディスク', 'sysinfo.screen': '解像度',
+      'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
+      'sysinfo.no_data': 'システム情報を取得できません',
+      'sysinfo.err': '取得エラー：{0}',
+      'confirm.cancel': 'キャンセル', 'confirm.ok': '確認', 'confirm.alert_ok': 'OK',
+      'confirm.stop_neo': 'Forge NEO を停止しますか？',
+      'confirm.refresh_all': 'すべてのギャラリーフォルダを更新しますか？\nすべての PNG を再スキャンし、サムネイルを再生成します。',
+      'confirm.refresh_done': 'ギャラリーを更新しました！\nサムネイルをバックグラウンドで生成中です。',
+      'confirm.refresh_fail': '更新失敗：{0}',
+      'confirm.refresh_folder': 'このフォルダを更新しますか？\n「{0}」',
+      'confirm.refresh_folder_done': '更新しました！サムネイルを生成中です。',
+      'confirm.clear_cache': 'サムネイルキャッシュをすべて削除しますか？\n削除後、「全て更新」を実行するまで画像は表示されません。',
+      'confirm.clear_done': 'キャッシュを削除しました。\n「全て更新」をクリックして再スキャンしてください。',
+      'confirm.remove_folder': 'このギャラリーフォルダを削除しますか？\n「{0}」\n元のファイルは削除されません。',
+      'confirm.upgrade': 'このバージョンに切り替えますか？',
+      'confirm.same_ver': '同じバージョンには切り替えられません！',
+      'confirm.upgrade_fail': 'アップグレード失敗：{0}',
+      'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '復元', 'win.close': '閉じる',
+      'copy.btn': 'コピー',
+      'sound.current': '現在の音：{0}',
+      'lang.display': '语言 Language 言語',
+    },
+  };
+
+  let _lang = 'zhCN';
+
+  function t(key, ...args) {
+    const dict = i18n[_lang] || i18n.zhCN;
+    let val = dict[key];
+    if (val === undefined) {
+      // fallback to zhCN
+      val = i18n.zhCN[key] || key;
+    }
+    if (args.length > 0) {
+      for (let i = 0; i < args.length; i++) {
+        val = val.replace(`{${i}}`, args[i]);
+      }
+    }
+    return val;
+  }
+
+  function setAppLanguage(langCode) {
+    const map = { 'zh-CN': 'zhCN', 'zh-TW': 'zhTW', 'en': 'en', 'ja': 'ja' };
+    _lang = map[langCode] || 'en';
+    document.documentElement.lang = langCode;
+    applyLanguage();
+  }
+
+  // 更新所有 data-i18n 元素的文本
+  function applyLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      el.placeholder = t(key);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      el.title = t(key);
+    });
+    document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+      const key = el.getAttribute('data-i18n-alt');
+      el.alt = t(key);
+    });
+    // 更新状态文本和启动按钮
+    if (typeof isRunning !== 'undefined') {
+      const txt = document.getElementById('statusText');
+      const dot = document.getElementById('statusDot');
+      const launch = document.getElementById('btnLaunch');
+      if (txt) txt.textContent = isRunning ? t('status.running') : t('status.stopped');
+      if (launch) {
+        launch.querySelector('.fn').textContent = isRunning ? t('status.run_btn') : t('status.launch_btn');
+      }
+    }
+    updateLaunchHint();
+    updateLaunchMethodHint();
+    updateNotificationHint();
+    updateProxyHint();
+    // 更新关于卡片与语言提示
+    const el = document.getElementById('languageNameHint');
+    if (el) el.textContent = t('lang.display');
+  }
+
+  // 当前激活的语言（用于设置页面高亮）
+  let _activeLang = 'zh-CN';
 
   // ═══ 状态 ═══
   let isRunning = false;
@@ -1387,16 +2044,16 @@
     const on = document.getElementById('notificationToggle').checked;
     const hasCustom = settings.notificationSoundPath && settings.notificationSoundPath.length > 0;
     let hint = '';
-    if (!on) hint = '关闭 — 不会播放提示音';
-    else if (hasCustom) hint = '<span style="color:var(--accent);">● 已开启</span> — 使用自定义音效';
-    else hint = '<span style="color:var(--console-green);">● 已开启</span> — 使用系统默认提示音';
+    if (!on) hint = t('settings.notif_off');
+    else if (hasCustom) hint = t('settings.notif_on_custom');
+    else hint = t('settings.notif_on_default');
     document.getElementById('notificationHint').innerHTML = hint;
   }
 
   function forgeSide_onSoundPicked(filePath) {
     settings.notificationSoundPath = filePath;
     var hint = document.getElementById('soundPathHint');
-    hint.textContent = '当前音效：' + filePath;
+    hint.textContent = t('sound.current', filePath);
     hint.title = filePath;
     hint.style.display = '';
     document.getElementById('btnResetSound').style.display = '';
@@ -1413,11 +2070,13 @@
   }
 
   // ═══ 代理联动 ═══
+  function updateProxyHint() {
+    const on = document.getElementById('proxyToggle').checked;
+    document.getElementById('proxyHint').innerHTML = on ? t('settings.proxy_hint_on') : t('settings.proxy_hint_off');
+  }
   function onProxyToggle() {
     const on = document.getElementById('proxyToggle').checked;
-    document.getElementById('proxyHint').innerHTML = on
-      ? '<span style="color:var(--console-green);">● 已开启</span> — NEO 网络流量将走代理，重启后生效'
-      : '关闭 — NEO 网络流量将直接连接';
+    updateProxyHint();
     bridge('saveSetting', JSON.stringify({ key: 'proxyEnabled', value: on.toString() }));
   }
 
@@ -1428,22 +2087,22 @@
     if (!resultEl) return;
     var label = target.charAt(0).toUpperCase() + target.slice(1);
     var originalText = btn ? btn.textContent : '';
-    resultEl.innerHTML = '⏳ 正在测试连接 ' + label + '…';
-    if (btn) { btn.disabled = true; btn.textContent = '测试中 请稍后…'; }
+    resultEl.innerHTML = t('settings.proxy_testing', label);
+    if (btn) { btn.disabled = true; btn.textContent = t('settings.proxy_test_btn'); }
     // 先更新 UI，再执行同步调用（否则 WebView2 sync 会阻塞渲染）
     setTimeout(function() {
       try {
         var json = chrome.webview.hostObjects.sync.forgeSide.TestProxyConnection(target);
         var data = JSON.parse(json);
         if (data.success) {
-          resultEl.innerHTML = '<span style="color:var(--console-green);">✅ 你可以正常连接 ' + label + '</span>'
+          resultEl.innerHTML = t('settings.proxy_success', label)
             + (data.ms ? ' <span style="color:var(--text-muted);font-size:11px;">(' + data.ms + 'ms)</span>' : '');
         } else {
-          resultEl.innerHTML = '<span style="color:var(--console-error);">❌ 无法连接 ' + label + '</span>'
+          resultEl.innerHTML = t('settings.proxy_fail', label)
             + (data.error ? ' <span style="color:var(--text-muted);font-size:11px;">— ' + escHtml(data.error) + '</span>' : '');
         }
       } catch(e) {
-        resultEl.innerHTML = '<span style="color:var(--console-error);">❌ 测试出错：' + escHtml(e.message) + '</span>';
+        resultEl.innerHTML = t('settings.proxy_err', escHtml(e.message));
       }
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
     }, 50);
@@ -1466,21 +2125,28 @@
 
   function updateLaunchMethodHint() {
     const raw = settings.launchMethod || 'auto';
-    const labels = { auto: '自动', direct: '直接启动', bat: 'Bat 方式' };
-    const method = labels[raw] || '自动';
     const hint = document.getElementById('launchMethodHint');
-    hint.textContent = method + '模式：'
-      + (raw === 'auto' ? '优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式'
-         : raw === 'direct' ? '强制使用 python launch.py 直接启动'
-         : '强制使用 webui.bat 方式启动');
+    if (raw === 'auto') hint.textContent = t('settings.launch_hint_auto');
+    else if (raw === 'direct') hint.textContent = t('settings.launch_hint_direct');
+    else if (raw === 'bat') hint.textContent = t('settings.launch_hint_bat');
   }
 
   function updateLaunchHint() {
     const raw = settings.launchMode || 'sage';
-    const labels = { sdp: 'SDP', sage: 'Sage', standard: '标准' };
-    const mode = labels[raw] || 'SDP';
+    const mode = raw.toUpperCase();
     const hint = document.getElementById('launchModeHint');
-    hint.textContent = isRunning ? `NEO 运行中 · ${mode}` : `${mode} 模式`;
+    hint.textContent = isRunning ? t('home.running_mode', mode) : t('home.idle_mode', mode);
+  }
+
+  // ═══ 语言切换 ═══
+  function onLanguageChange() {
+    const lang = document.getElementById('languageSelect').value;
+    _activeLang = lang;
+    setAppLanguage(lang);
+    // 保存到 C#
+    bridge('saveSetting', JSON.stringify({ key: 'language', value: lang }));
+    // 重新应用 Gallery folder list（可能包含动态文本）
+    rebuildGalleryFolderList();
   }
 
   // ═══ 通用设置变更 ═══
@@ -1698,7 +2364,7 @@
             openBgEditor();
           }
         }
-      } catch(e) { forgeSide_onConsole('[诊断] 轮询异常: ' + e.message, 'error'); }
+      } catch(e) { forgeSide_onConsole('[ForgeSide] Poll error: ' + e.message, 'error'); }
     }, 250);
   })();
 
@@ -1722,7 +2388,7 @@
       const data = JSON.parse(json);
       if (data.error) { showImageParams(data); return; }
       showImageParams(data);
-    } catch(e) { showImageParams({error: '解析失败: ' + e.message}); }
+    } catch(e) { showImageParams({error: 'Error: ' + e.message}); }
   }
 
   // ═══ 接收 C# 的消息 ═══
@@ -1755,7 +2421,7 @@
       if (value == null || value === '') return;
       var id = 'param-' + label.replace(/\s+/g, '-');
       html += '<div class="param-item">'
-        + '<button class="copy-btn" data-target="' + id + '" title="复制">' + copyIcon + '</button>'
+        + '<button class="copy-btn" data-target="' + id + '" title="' + t('copy.btn') + '">' + copyIcon + '</button>'
         + '<div class="pl">' + escHtml(label) + '</div>'
         + '<div class="pv' + (extraClass ? ' ' + extraClass : '') + '" id="' + id + '">' + escHtml(String(value)) + '</div>'
         + '</div>';
@@ -1775,7 +2441,7 @@
       var rawId = 'param-raw-data';
       html = '<div class="param-item">'
         + '<button class="copy-btn" data-target="' + rawId + '" title="复制">' + copyIcon + '</button>'
-        + '<div class="pl">原始数据</div>'
+        + '<div class="pl">' + t('params.raw_data') + '</div>'
         + '<div class="pv" id="' + rawId + '" style="font-family:var(--font-mono);font-size:10px;max-height:200px;overflow-y:auto;">' + escHtml(JSON.stringify(data, null, 2)) + '</div>'
         + '</div>';
     }
@@ -2240,7 +2906,7 @@
         if (value == null || value === '') return;
         var id = 'gparam-' + label.replace(/\s+/g, '-');
         html += '<div class="param-item">'
-          + '<button class="copy-btn" data-target="' + id + '" title="复制">' + copyIcon + '</button>'
+          + '<button class="copy-btn" data-target="' + id + '" title="' + t('copy.btn') + '">' + copyIcon + '</button>'
           + '<div class="pl">' + escHtml(label) + '</div>'
           + '<div class="pv" id="' + id + '">' + escHtml(String(value)) + '</div>'
           + '</div>';
@@ -2280,7 +2946,7 @@
         });
       }, 50);
     }
-    panel.innerHTML = html || '<div style="color:var(--text-muted);font-size:12px;">无参数信息</div>';
+    panel.innerHTML = html || '<div style="color:var(--text-muted);font-size:12px;">' + t('gallery.no_params') + '</div>';
   }
 
   // C# 回调：文件夹变更后刷新（重新从 C# 拉取最新设置）
@@ -2299,7 +2965,7 @@
     if (!container) return;
     var folders = settings.galleryFolders || [];
     if (!folders.length) {
-      container.innerHTML = '<div class="sh" style="margin-bottom:8px;">尚未添加任何文件夹</div>';
+      container.innerHTML = '<div class="sh" style="margin-bottom:8px;" data-i18n="settings.gallery_empty">尚未添加任何文件夹</div>';
       return;
     }
     var html = '';
@@ -2308,10 +2974,10 @@
       html += '<div style="background:var(--card);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;">'
         + '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text);word-break:break-all;line-height:1.5;margin-bottom:8px;" title="' + escAttr(f) + '">' + escHtml(f) + '</div>'
         + '<div style="display:flex;gap:6px;margin-bottom:6px;">'
-        + '<button class="btn-sm" data-gallery-refresh="' + escAttr(f) + '">🔄 刷新此文件夹</button>'
-        + '<button class="btn-sm" onclick="clearThumbCache()" style="margin-left:auto;">🗑 清除缓存</button>'
+        + '<button class="btn-sm" data-gallery-refresh="' + escAttr(f) + '">' + t('settings.gallery_refresh') + '</button>'
+        + '<button class="btn-sm" onclick="clearThumbCache()" style="margin-left:auto;">' + t('settings.gallery_clear') + '</button>'
         + '</div>'
-        + '<div style="font-size:10px;color:var(--accent);line-height:1.4;">暂不支持自行添加文件夹路径，也不要在配置文件中改动文件夹路径</div>'
+        + '<div style="font-size:10px;color:var(--accent);line-height:1.4;">' + t('settings.gallery_hint') + '</div>'
         + '</div>';
     }
     container.innerHTML = html;
@@ -2322,31 +2988,31 @@
   }
 
   function refreshAllFolders() {
-    showConfirm('确定要刷新全部图库文件夹吗？\n将重新扫描所有 PNG 并生成缩略图。', function() {
+    showConfirm(t('confirm.refresh_all'), function() {
       try { chrome.webview.hostObjects.sync.forgeSide.RefreshGallery(); }
-      catch(e) { showConfirm('刷新失败：' + e.message, null); return; }
-      showConfirm('图库已刷新！\n缩略图正在后台生成，稍候切换到图库 tab 即可查看。', null);
+      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
+      showConfirm(t('confirm.refresh_done'), null);
     });
   }
 
   function refreshSingleFolder(folder) {
-    showConfirm('确定要刷新此文件夹吗？\n「' + folder + '」', function() {
+    showConfirm(t('confirm.refresh_folder', folder), function() {
       try { chrome.webview.hostObjects.sync.forgeSide.RefreshGalleryFolder(folder); }
-      catch(e) { showConfirm('刷新失败：' + e.message, null); return; }
-      showConfirm('已刷新！缩略图正在后台生成。', null);
+      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
+      showConfirm(t('confirm.refresh_folder_done'), null);
     });
   }
 
   function clearThumbCache() {
-    showConfirm('确定要清除所有缩略图缓存吗？\n清除后需要重新「刷新全部」才能显示图片。', function() {
+    showConfirm(t('confirm.clear_cache'), function() {
       try { chrome.webview.hostObjects.sync.forgeSide.CleanThumbOrphans(); }
-      catch(e) { showConfirm('清除失败：' + e.message, null); return; }
-      showConfirm('缓存已清除。\n请点击「刷新全部」重新扫描。', null);
+      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
+      showConfirm(t('confirm.clear_done'), null);
     });
   }
 
   function removeGalleryFolder(path) {
-    showConfirm('确定要移除该图库文件夹吗？\n「' + path + '」\n不会删除原文件，仅从 ForgeSide 中移除。', function() {
+    showConfirm(t('confirm.remove_folder', path), function() {
       bridge('removeGalleryFolder', path);
     });
   }
@@ -2359,8 +3025,8 @@
       var info = JSON.parse(json);
       // 两列布局：左列名称右对齐，右列值左对齐
       var labels = {
-        os: '操作系统', cpu: 'CPU', gpu: '显卡', ram: '内存',
-        disk: '磁盘', screen: '屏幕分辨率', python: 'Python', forge: 'Forge NEO'
+        os: t('sysinfo.os'), cpu: t('sysinfo.cpu'), gpu: t('sysinfo.gpu'), ram: t('sysinfo.ram'),
+        disk: t('sysinfo.disk'), screen: t('sysinfo.screen'), python: t('sysinfo.python')
       };
       var html = '<table style="width:100%;border-collapse:collapse;">';
       for (var key in labels) {
@@ -2371,10 +3037,10 @@
         }
       }
       html += '</table>';
-      content.innerHTML = html || '<div style="color:var(--text-muted);">无法获取系统信息</div>';
+      content.innerHTML = html || '<div style="color:var(--text-muted);">' + t('sysinfo.no_data') + '</div>';
       overlay.style.display = 'flex';
     } catch(e) {
-      content.innerHTML = '<div style="color:var(--text-muted);">获取失败: ' + escHtml(e.message) + '</div>';
+      content.innerHTML = '<div style="color:var(--text-muted);">' + t('sysinfo.err', escHtml(e.message)) + '</div>';
       overlay.style.display = 'flex';
     }
   }
@@ -2386,6 +3052,11 @@
     try {
       const json = chrome.webview.hostObjects.sync.forgeSide.GetSettingsJson();
       settings = JSON.parse(json);
+      // 初始化语言
+      if (settings.language) {
+        _activeLang = settings.language;
+        setAppLanguage(settings.language);
+      }
       applySettings();
       cacheBannerSize();
     } catch(e) { setTimeout(init, 200); }
@@ -2393,6 +3064,10 @@
 
   function applySettings() {
     if (settings.isDarkMode) setTheme(true);
+    // 语言选择器
+    if (settings.language) {
+      document.getElementById('languageSelect').value = settings.language;
+    }
     document.getElementById('proxyToggle').checked = settings.proxyEnabled;
     document.getElementById('proxyUrl').value = settings.proxyUrl || 'http://127.0.0.1:7897';
     onProxyToggle();
@@ -2549,14 +3224,14 @@
     if (!ver || ver === '未知' || ver === '未检测到') {
       el.textContent = '—';
       el.style.color = 'var(--text-muted)';
-      sub.innerHTML = '未能获取本地版本信息';
+      sub.innerHTML = t('version.no_local');
       document.getElementById('vLocalCard').className = 'version-card local';
       return;
     }
 
     el.textContent = cleanVersionDisplay(ver);
     el.style.color = '';
-    sub.innerHTML = 'Forge NEO 当前安装的版本';
+    sub.innerHTML = t('version.local_sub');
     document.getElementById('vLocalCard').className = 'version-card local';
   }
 
@@ -2568,7 +3243,7 @@
     if (!listEl) return;
 
     // 显示加载状态
-    listEl.innerHTML = '<div class="version-error"><div class="ve-icon">🔄</div><div class="ve-text">正在获取版本信息…</div></div>';
+    listEl.innerHTML = '<div class="version-error"><div class="ve-icon">🔄</div><div class="ve-text">' + t('version.loading') + '</div></div>';
     if (countEl) countEl.textContent = '';
     btn.classList.add('spinning');
 
@@ -2622,10 +3297,10 @@
       listEl.innerHTML = ''
         + '<div class="version-error">'
         + '<div class="ve-icon">⚠️</div>'
-        + '<div class="ve-text">获取版本信息失败：' + escHtml(err.message) + '</div>'
-        + '<button class="ve-retry" onclick="fetchReleases()">重试</button>'
+        + '<div class="ve-text">' + t('version.fetch_error', escHtml(err.message)) + '</div>'
+        + '<button class="ve-retry" onclick="fetchReleases()">' + t('version.retry') + '</button>'
         + '</div>';
-      if (countEl) countEl.textContent = '加载失败';
+      if (countEl) countEl.textContent = t('version.load_failed');
     });
   }
 
@@ -2636,12 +3311,12 @@
     if (!listEl) return;
 
     if (!releases || releases.length === 0) {
-      listEl.innerHTML = '<div class="version-error"><div class="ve-icon">📦</div><div class="ve-text">暂无发布版本</div></div>';
-      if (countEl) countEl.textContent = '0 个版本';
+      listEl.innerHTML = '<div class="version-error"><div class="ve-icon">📦</div><div class="ve-text">' + t('version.no_releases') + '</div></div>';
+      if (countEl) countEl.textContent = '0';
       return;
     }
 
-    if (countEl) countEl.textContent = releases.length + ' 个版本';
+    if (countEl) countEl.textContent = releases.length + '';
 
     // 更新本地版本
     var localVer = getLocalVersion();
@@ -2675,9 +3350,9 @@
 
       // 构建 badges
       var badges = '';
-      if (isLocal) badges += '<span class="ri-badge current">本地当前版本</span>';
-      else if (isNewer) badges += '<span class="ri-badge newer">有新版本</span>';
-      if (isPre) badges += '<span class="ri-badge prerelease">预发布</span>';
+      if (isLocal) badges += '<span class="ri-badge current">' + t('version.badge_current') + '</span>';
+      else if (isNewer) badges += '<span class="ri-badge newer">' + t('version.badge_newer') + '</span>';
+      if (isPre) badges += '<span class="ri-badge prerelease">' + t('version.badge_prerelease') + '</span>';
 
       // 截取 release notes 摘要（用于未展开时的预览）
       var bodyPreview = '';
@@ -2693,8 +3368,8 @@
         + '<span class="ri-tag">' + escHtml(tag) + '</span>'
         + '<span class="ri-date">' + escHtml(formattedDate) + '</span>'
         + '<span class="ri-badges">' + badges + '</span>'
-        + (body ? '<button class="ri-toggle" onclick="toggleReleaseBody(' + i + ')" id="riToggle-' + i + '">展开 ∨</button>' : '')
-        + '<label class="ri-select" title="选择此版本进行升级">'
+        + (body ? '<button class="ri-toggle" onclick="toggleReleaseBody(' + i + ')" id="riToggle-' + i + '">' + t('version.expand') + '</button>' : '')
+        + '<label class="ri-select" data-i18n-title="version.select_title" title="选择此版本进行升级">'
         + '<input type="radio" name="v-upgrade" value="' + escAttr(tag) + '" onclick="onVersionClick(this, \'' + escAttr(tag) + '\')"' + (isLocal ? ' checked' : '') + '>'
         + '</label>'
         + '</div>'
@@ -2710,7 +3385,7 @@
       var btn = document.getElementById('vUpgradeBtn');
       var hint = document.getElementById('vUpgradeHint');
       if (btn) { btn.classList.add('active'); btn.disabled = false; }
-      if (hint) hint.textContent = '已选择：' + vSelectedTag;
+      if (hint) hint.textContent = t('version.selected', vSelectedTag);
     }
   }
 
@@ -2727,7 +3402,7 @@
     if (!body || !toggle) return;
     var isOpen = body.classList.contains('open');
     body.classList.toggle('open');
-    toggle.textContent = isOpen ? '展开 ∨' : '收起 ∧';
+    toggle.textContent = isOpen ? t('version.expand') : t('version.collapse');
   }
 
   // ═══ 版本升级 ═══
@@ -2742,7 +3417,7 @@
       var btn = document.getElementById('vUpgradeBtn');
       var hint = document.getElementById('vUpgradeHint');
       if (btn) { btn.classList.remove('active'); btn.disabled = false; }
-      if (hint) hint.textContent = '请选择版本';
+      if (hint) hint.textContent = t('version.select_hint');
     } else {
       vSelectedTag = tag;
       var btn = document.getElementById('vUpgradeBtn');
@@ -2762,11 +3437,11 @@
     var tagNum = (vSelectedTag.match(verNumRegex) || [])[1];
     var localNum = (localVer.match(verNumRegex) || [])[1];
     if (tagNum && localNum && tagNum === localNum) {
-      showAlert('不能在相同版本间切换！');
+      showAlert(t('confirm.same_ver'));
       return;
     }
-    var msg = '确定升级/更换到此版本吗？'
-      + '\n' + (cleanLocal || '当前版本') + ' → ' + vSelectedTag;
+    var msg = t('confirm.upgrade')
+      + '\n' + (cleanLocal || t('version.local_label')) + ' → ' + vSelectedTag;
     showConfirm(msg, doUpgrade);
   }
 
@@ -2775,8 +3450,8 @@
     if (!vSelectedTag) return;
     var btn = document.getElementById('vUpgradeBtn');
     var hint = document.getElementById('vUpgradeHint');
-    if (btn) { btn.classList.remove('active'); btn.textContent = '⏳ 升级中…'; }
-    if (hint) hint.textContent = '正在升级到 ' + vSelectedTag + '，请稍候…';
+    if (btn) { btn.classList.remove('active'); btn.textContent = '⏳ ' + t('version.upgrade'); }
+    if (hint) hint.textContent = t('version.upgrading_to', vSelectedTag);
     // 自动切换到控制台查看升级日志
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
@@ -2843,10 +3518,10 @@
         var tagMatch = latestTag.match(verNumRegex);
         var localMatch = localVer.match(verNumRegex);
         if (tagMatch && localMatch && tagMatch[1] === localMatch[1]) {
-          latestSub.innerHTML = '<span class="tag tag-current">✓ 已是最新版本</span> ' + escHtml(latestDate);
+          latestSub.innerHTML = '<span class="tag tag-current">' + t('version.latest_current') + '</span> ' + escHtml(latestDate);
           localCard.className = 'version-card local';
         } else {
-          latestSub.innerHTML = '<span class="tag tag-outdated">有新版本可用</span> ' + escHtml(latestDate);
+          latestSub.innerHTML = '<span class="tag tag-outdated">' + t('version.latest_available') + '</span> ' + escHtml(latestDate);
           localCard.className = 'version-card outdated';
         }
       } else {
@@ -2855,7 +3530,7 @@
     } else {
       latestEl.textContent = '—';
       latestEl.style.color = 'var(--text-muted)';
-      if (latestSub) latestSub.textContent = '暂无数据';
+      if (latestSub) latestSub.textContent = t('version.no_data');
     }
   }
 

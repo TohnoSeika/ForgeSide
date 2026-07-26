@@ -3,7 +3,10 @@ using System.Text.Json;
 
 namespace ForgeSide;
 
-/// <summary>从 PNG tEXt chunk 中提取 AI 生成参数 —— 桃华帮 Minagi 写的哦</summary>
+/// <summary>
+/// 从 PNG/JPEG/WebP 中提取 AI 生成参数 —— 桃华帮 Minagi 完善的作品哦 ✿
+/// 支援 WebUI / Forge / ComfyUI 格式，覆盖更多图片类型和节点结构～
+/// </summary>
 public static class PngParser
 {
     public record ImageParams(
@@ -36,54 +39,24 @@ public static class PngParser
     {
         try
         {
-            var sig = new byte[8];
-            stream.ReadExactly(sig);
-            if (sig[0] != 0x89 || sig[1] != 'P' || sig[2] != 'N' || sig[3] != 'G')
-                return null;
+            var sig = new byte[12];
+            if (stream.Read(sig, 0, 12) < 12) return null;
 
-            var parameters = new Dictionary<string, string>();
-
-            while (stream.Position < stream.Length)
+            // 根据魔数检测格式，把流位置倒回正確的起點
+            if (IsPng(sig))
             {
-                var lenBytes = new byte[4];
-                stream.ReadExactly(lenBytes);
-                if (BitConverter.IsLittleEndian) Array.Reverse(lenBytes);
-                int length = BitConverter.ToInt32(lenBytes);
-
-                var typeBytes = new byte[4];
-                stream.ReadExactly(typeBytes);
-                string type = Encoding.ASCII.GetString(typeBytes);
-
-                var data = new byte[length];
-                stream.ReadExactly(data);
-                stream.Seek(4, SeekOrigin.Current); // CRC
-
-                if (type == "tEXt")
-                {
-                    int nullIdx = Array.IndexOf<byte>(data, 0);
-                    if (nullIdx < 0) continue;
-                    string key = Encoding.UTF8.GetString(data, 0, nullIdx);
-                    string val = Encoding.UTF8.GetString(data, nullIdx + 1, length - nullIdx - 1);
-                    parameters[key] = val;
-                }
-                else if (type == "IEND")
-                {
-                    break;
-                }
+                stream.Seek(8, SeekOrigin.Begin);
+                return ParsePng(stream);
             }
-
-            // WebUI / Forge 格式
-            if (parameters.TryGetValue("parameters", out var rawParams))
+            if (IsJpeg(sig))
             {
-                var parsed = ParseWebUI(rawParams);
-                return parsed with { RawText = rawParams };
+                stream.Seek(2, SeekOrigin.Begin);
+                return ParseJpeg(stream);
             }
-
-            // ComfyUI 格式
-            if (parameters.TryGetValue("prompt", out var rawPrompt))
+            if (IsWebP(sig))
             {
-                var parsed = ParseComfyUI(rawPrompt);
-                return parsed with { RawText = rawPrompt };
+                stream.Seek(12, SeekOrigin.Begin);
+                return ParseWebP(stream);
             }
 
             return null;
@@ -91,12 +64,100 @@ public static class PngParser
         catch { return null; }
     }
 
-    // ═══ WebUI / Forge 格式解析 ═══
-    private static ImageParams ParseWebUI(string raw)
+    // ═══════════════════════════════════════
+    //  格式檢測
+    // ═══════════════════════════════════════
+
+    private static bool IsPng(byte[] h) =>
+        h[0] == 0x89 && h[1] == 0x50 && h[2] == 0x4E && h[3] == 0x47;
+
+    private static bool IsJpeg(byte[] h) =>
+        h[0] == 0xFF && h[1] == 0xD8 && h[2] == 0xFF;
+
+    private static bool IsWebP(byte[] h) =>
+        h[0] == 0x52 && h[1] == 0x49 && h[2] == 0x46 && h[3] == 0x46
+        && h[8] == 0x57 && h[9] == 0x45 && h[10] == 0x42 && h[11] == 0x50;
+
+    // ═══════════════════════════════════════
+    //  PNG 解析
+    // ═══════════════════════════════════════
+
+    private static ImageParams? ParsePng(Stream stream)
+    {
+        var textChunks = new Dictionary<string, string>();
+        int imgWidth = 0, imgHeight = 0;
+
+        while (stream.Position < stream.Length - 4)
+        {
+            var lenBuf = new byte[4];
+            if (stream.Read(lenBuf, 0, 4) < 4) break;
+            int length = ReadBigEndianInt32(lenBuf);
+
+            var typeBuf = new byte[4];
+            if (stream.Read(typeBuf, 0, 4) < 4) break;
+            string type = Encoding.ASCII.GetString(typeBuf);
+
+            var data = new byte[length];
+            if (stream.Read(data, 0, length) < length) break;
+            stream.Seek(4, SeekOrigin.Current); // CRC
+
+            switch (type)
+            {
+                case "IHDR":
+                    imgWidth = ReadBigEndianInt32(data.AsSpan(0, 4));
+                    imgHeight = ReadBigEndianInt32(data.AsSpan(4, 4));
+                    break;
+
+                case "tEXt":
+                    int nullIdx = Array.IndexOf<byte>(data, 0);
+                    if (nullIdx < 0) continue;
+                    string key = Encoding.UTF8.GetString(data, 0, nullIdx);
+                    string val = Encoding.UTF8.GetString(data, nullIdx + 1, length - nullIdx - 1);
+                    textChunks[key] = val;
+                    break;
+
+                case "IEND":
+                    goto done;
+            }
+        }
+
+    done:
+        // WebUI / Forge 格式
+        if (textChunks.TryGetValue("parameters", out var rawParams))
+        {
+            var parsed = ParseWebUIParams(rawParams);
+            return parsed with
+            {
+                Width = parsed.Width > 0 ? parsed.Width : imgWidth,
+                Height = parsed.Height > 0 ? parsed.Height : imgHeight,
+                RawText = rawParams,
+            };
+        }
+
+        // ComfyUI 格式
+        if (textChunks.TryGetValue("prompt", out var rawPrompt))
+        {
+            var parsed = ParseComfyUI(rawPrompt);
+            return parsed with
+            {
+                Width = parsed.Width > 0 ? parsed.Width : imgWidth,
+                Height = parsed.Height > 0 ? parsed.Height : imgHeight,
+                RawText = rawPrompt,
+            };
+        }
+
+        return null;
+    }
+
+    // ═══════════════════════════════════════
+    //  WebUI / Forge 參數行解析
+    // ═══════════════════════════════════════
+
+    private static ImageParams ParseWebUIParams(string raw)
     {
         var result = new ImageParams();
 
-        // 找到 "Negative prompt:" 边界，这样即使 prompt 有多行也能正确提取
+        // 找到 "Negative prompt:" 邊界
         int negIdx = raw.IndexOf("\nNegative prompt:");
         string promptPart, rest;
 
@@ -107,17 +168,16 @@ public static class PngParser
         }
         else
         {
-            // 没有 Negative prompt 的情况（极少见）
             promptPart = raw.Trim();
             rest = "";
         }
 
-        result = result with { Prompt = promptPart };
+        if (!string.IsNullOrWhiteSpace(promptPart))
+            result = result with { Prompt = promptPart };
 
-        // 解析剩余部分（Negative prompt + 参数行）
+        // 解析 Negative prompt + 參數行
         if (rest.StartsWith("Negative prompt:"))
         {
-            // 找到参数行起始（以 "Steps:" 或常见参数键开头的那一行）
             string afterNeg = rest["Negative prompt:".Length..].TrimStart();
             int paramsLineIdx = FindParamLineStart(afterNeg);
 
@@ -128,10 +188,7 @@ public static class PngParser
             }
             else
             {
-                // 可能整行就是参数，没有独立的 negative prompt
-                // 尝试作为参数行解析
-                string negText = afterNeg;
-                // 如果 afterNeg 里有逗号分隔的参数键值对，可能是参数行
+                // 沒有參數行——整段可能就是 negative prompt 或直接是參數
                 if (afterNeg.Contains("Steps:") || afterNeg.Contains("Seed:"))
                 {
                     result = result with { NegativePrompt = "" };
@@ -139,19 +196,19 @@ public static class PngParser
                 }
                 else
                 {
-                    result = result with { NegativePrompt = negText };
+                    result = result with { NegativePrompt = afterNeg.Trim() };
                 }
             }
         }
         else if (!string.IsNullOrWhiteSpace(rest))
         {
+            // 只有參數行，沒有 negative prompt
             ParseParamLine(rest, ref result);
         }
 
         return result;
     }
 
-    /// <summary>在文本中找参数行开始位置（以 Steps: / Seed: 等键开头）</summary>
     private static int FindParamLineStart(string text)
     {
         var keys = new[] { "\nSteps:", "\nSeed:", "\nSampler:", "\nCFG scale:", "\nModel:", "\nSize:" };
@@ -165,12 +222,10 @@ public static class PngParser
         return best;
     }
 
-    /// <summary>解析参数行（逗号分隔的 key: value 对）</summary>
     private static void ParseParamLine(string line, ref ImageParams result)
     {
-        // 如果有多行，只取包含参数键的第一行
         var lines = line.Split('\n', StringSplitOptions.TrimEntries);
-        string paramLine = line; // 默认用整段
+        string paramLine = line;
         foreach (var l in lines)
         {
             if (l.Contains("Steps:") || l.Contains("Seed:") || l.Contains("Sampler:"))
@@ -195,7 +250,7 @@ public static class PngParser
                 case "CFG scale":      result = result with { CfgScale = double.TryParse(val, out var c) ? c : 0 }; break;
                 case "Sampler":        result = result with { Sampler = val }; break;
                 case "Model":          result = result with { Model   = val }; break;
-                case "Model hash":     break; // 跳过 hash
+                case "Model hash":     break;
                 case "Size":           ParseSize(val, out var w, out var h);
                                        result = result with { Width = w, Height = h }; break;
                 case "Hires resize":   ParseSize(val.Split('(')[0], out var hw, out var hh);
@@ -215,10 +270,10 @@ public static class PngParser
         }
     }
 
-    // ═══ ComfyUI 格式解析 ═══
-    // 兼容两种格式:
-    //   旧格式 (prompt chunk): {"1":{class_type:"KSampler",inputs:{seed:...}}, "2":{...}}  ← 根即节点映射
-    //   新格式 (API):          {"nodes":[{type:"KSampler",...}], "links":[...], ...}
+    // ═══════════════════════════════════════
+    //  ComfyUI 解析
+    // ═══════════════════════════════════════
+
     private static ImageParams ParseComfyUI(string json)
     {
         var result = new ImageParams { IsComfyUI = true };
@@ -227,22 +282,14 @@ public static class PngParser
             using var doc = JsonDocument.Parse(json);
             JsonElement root = doc.RootElement;
 
-            // 确定节点集合：有 "nodes" 属性则用它，否则把整个根对象当作节点映射
+            // 確定節點集合：有 "nodes" 屬性則用它，否則把整個根對象當作節點映射
             JsonElement nodes;
             if (root.TryGetProperty("nodes", out var n))
-            {
                 nodes = n;
-            }
             else if (root.ValueKind == JsonValueKind.Object)
-            {
-                // 旧格式：根对象就是节点映射 {"1":{...}, "2":{...}}
-                // 如果根对象的子元素看起来像节点（有 class_type 或 type），就用它
                 nodes = root;
-            }
             else
-            {
                 return result;
-            }
 
             string? posPrompt = null, negPrompt = null, model = null;
             long seed = -1;
@@ -252,71 +299,66 @@ public static class PngParser
 
             ForEachNode(nodes, (nodeEl, nodeId) =>
             {
-                // class_type = 旧格式, type = 新格式
+                // 跳過非對象節點
+                if (nodeEl.ValueKind != JsonValueKind.Object) return;
+
                 string? nodeType = GetStringProp(nodeEl, "class_type")
                                 ?? GetStringProp(nodeEl, "type");
-                var inputs = nodeEl.TryGetProperty("inputs", out var i) ? i : default;
 
-                // _meta.title = 旧格式, title = 新格式
-                string? title = null;
-                if (nodeEl.TryGetProperty("_meta", out var meta) && meta.TryGetProperty("title", out var mt))
-                    title = mt.GetString();
-                title ??= GetStringProp(nodeEl, "title");
+                var inputs = nodeEl.TryGetProperty("inputs", out var ins) && ins.ValueKind == JsonValueKind.Object
+                    ? ins : default;
+                if (inputs.ValueKind != JsonValueKind.Object) return;
 
-                switch (nodeType)
+                // ── 提示詞提取（不限於 CLIPTextEncode，任何有文本輸入的節點）──
+                // 支援 text / prompt / string 三種字段名
+                if ((inputs.TryGetProperty("text", out var txt)
+                     || inputs.TryGetProperty("prompt", out txt)
+                     || inputs.TryGetProperty("string", out txt))
+                    && txt.ValueKind == JsonValueKind.String)
                 {
-                    case "CLIPTextEncode":
-                        if (inputs.TryGetProperty("text", out var txt) && txt.ValueKind == JsonValueKind.String)
-                        {
-                            string text = txt.GetString() ?? "";
-                            bool isNeg = (title != null && title.Contains("neg", StringComparison.OrdinalIgnoreCase))
-                                      || (posPrompt != null && string.CompareOrdinal(nodeId, posPrompt) > 0);
-                            if (isNeg && negPrompt == null)
-                                negPrompt = text;
-                            else if (posPrompt == null)
-                                posPrompt = text;
-                            else if (negPrompt == null)
-                                negPrompt = text;
-                        }
-                        break;
+                    string text = txt.GetString() ?? "";
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        string? title = GetStringProp(nodeEl, "_meta.title")
+                                     ?? GetStringProp(nodeEl, "title");
+                        bool isNeg = title != null
+                            && title.Contains("neg", StringComparison.OrdinalIgnoreCase);
 
-                    case "CheckpointLoaderSimple":
-                    case "CheckpointLoader":
-                    case "LoadCheckpoint":
-                    case "LoadDiffusionModel":
-                    case "UNETLoader":
-                        if (inputs.TryGetProperty("ckpt_name", out var ckpt) && ckpt.ValueKind == JsonValueKind.String)
-                            model = ckpt.GetString(); // 扩散模型优先，覆盖之前的
-                        else if (inputs.TryGetProperty("unet_name", out var un) && un.ValueKind == JsonValueKind.String)
-                            model = un.GetString();
-                        break;
-
-                    case "CLIPLoader":
-                        if (inputs.TryGetProperty("clip_name", out var cn) && cn.ValueKind == JsonValueKind.String)
-                            model ??= cn.GetString(); // 次选
-                        break;
-
-                    case "VAELoader":
-                        // VAE 不作为模型名
-                        break;
-
-                    case "KSampler":
-                    case "KSamplerAdvanced":
-                        if (inputs.TryGetProperty("seed", out var s))
-                        {
-                            if (s.ValueKind == JsonValueKind.Number) seed = s.GetInt64();
-                            else if (s.ValueKind == JsonValueKind.String && long.TryParse(s.GetString(), out var sp)) seed = sp;
-                        }
-                        if (inputs.TryGetProperty("steps", out var st)) steps = st.GetInt32();
-                        if (inputs.TryGetProperty("cfg", out var c)) cfg = c.GetDouble();
-                        if (inputs.TryGetProperty("sampler_name", out var sn)) sampler = sn.GetString();
-                        break;
-
-                    case "EmptyLatentImage":
-                        if (inputs.TryGetProperty("width", out var ew)) width = ew.GetInt32();
-                        if (inputs.TryGetProperty("height", out var eh)) height = eh.GetInt32();
-                        break;
+                        if (isNeg && negPrompt == null)
+                            negPrompt = text;
+                        else if (posPrompt == null)
+                            posPrompt = text;
+                        else if (negPrompt == null)
+                            negPrompt = text;
+                    }
                 }
+
+                // ── 種子 / 步數 / CFG ──
+                if (seed < 0 && inputs.TryGetProperty("seed", out var sd))
+                {
+                    if (sd.ValueKind == JsonValueKind.Number) seed = sd.GetInt64();
+                    else if (sd.ValueKind == JsonValueKind.String && long.TryParse(sd.GetString(), out var sp)) seed = sp;
+                }
+                if (steps == 0 && inputs.TryGetProperty("steps", out var st) && st.ValueKind == JsonValueKind.Number)
+                    steps = st.GetInt32();
+                if (cfg == 0 && inputs.TryGetProperty("cfg", out var cf) && cf.ValueKind == JsonValueKind.Number)
+                    cfg = cf.GetDouble();
+                if (sampler == null && inputs.TryGetProperty("sampler_name", out var sn) && sn.ValueKind == JsonValueKind.String)
+                    sampler = sn.GetString();
+
+                // ── 模型名稱 ──
+                if (inputs.TryGetProperty("ckpt_name", out var ckpt) && ckpt.ValueKind == JsonValueKind.String)
+                    model ??= ckpt.GetString();
+                if (inputs.TryGetProperty("model_name", out var mn) && mn.ValueKind == JsonValueKind.String)
+                    model ??= mn.GetString();
+                if (inputs.TryGetProperty("unet_name", out var un) && un.ValueKind == JsonValueKind.String)
+                    model ??= un.GetString();
+
+                // ── 圖片尺寸 ──
+                if (width == 0 && inputs.TryGetProperty("width", out var wd) && wd.ValueKind == JsonValueKind.Number)
+                    width = wd.GetInt32();
+                if (height == 0 && inputs.TryGetProperty("height", out var ht) && ht.ValueKind == JsonValueKind.Number)
+                    height = ht.GetInt32();
             });
 
             result = result with
@@ -332,19 +374,24 @@ public static class PngParser
                 Height = height,
             };
         }
-        catch { /* 解析失败，返回已有字段 */ }
+        catch { /* 解析失敗，返回已有字段 */ }
 
         return result;
     }
 
-    private static string? GetStringProp(JsonElement el, string name)
+    private static string? GetStringProp(JsonElement el, string path)
     {
-        if (el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String)
-            return v.GetString();
-        return null;
+        // 支援點路徑： "meta.title" → el.meta.title
+        var parts = path.Split('.');
+        var current = el;
+        foreach (var part in parts)
+        {
+            if (!current.TryGetProperty(part, out current))
+                return null;
+        }
+        return current.ValueKind == JsonValueKind.String ? current.GetString() : null;
     }
 
-    /// <summary>遍历 ComfyUI 节点，兼容数组 [{id,type,...}] 和对象 {"id":{type,...}} 两种格式</summary>
     private static void ForEachNode(JsonElement nodes, Action<JsonElement, string> callback)
     {
         if (nodes.ValueKind == JsonValueKind.Array)
@@ -362,11 +409,251 @@ public static class PngParser
         {
             foreach (var kv in nodes.EnumerateObject())
             {
-                // 跳过元数据属性（非节点对象）
                 if (kv.Name is "nodes" or "links" or "last_node_id" or "last_link_id" or "version" or "id" or "revision")
                     continue;
                 callback(kv.Value, kv.Name);
             }
         }
     }
+
+    // ═══════════════════════════════════════
+    //  JPEG 解析
+    // ═══════════════════════════════════════
+
+    private static ImageParams? ParseJpeg(Stream stream)
+    {
+        int imgWidth = 0, imgHeight = 0;
+
+        try
+        {
+            while (stream.Position < stream.Length - 2)
+            {
+                var marker = new byte[2];
+                if (stream.Read(marker, 0, 2) < 2) break;
+
+                if (marker[0] != 0xFF) break;
+
+                // SOS（Start of Scan）— 圖像數據開始，停止解析
+                if (marker[1] == 0xDA) break;
+
+                // SOI，跳過
+                if (marker[1] == 0xD8) continue;
+
+                // 讀取段長度
+                var lenBuf = new byte[2];
+                if (stream.Read(lenBuf, 0, 2) < 2) break;
+                int segLen = (lenBuf[0] << 8) | lenBuf[1];
+                if (segLen < 2) break;
+                int dataLen = segLen - 2;
+
+                switch (marker[1])
+                {
+                    case 0xE1: // APP1 — EXIF
+                        if (dataLen > 6)
+                        {
+                            var appData = new byte[dataLen];
+                            if (stream.Read(appData, 0, dataLen) < dataLen) break;
+
+                            string exifHeader = Encoding.ASCII.GetString(appData, 0, 6);
+                            if (exifHeader == "Exif\0\0")
+                            {
+                                if (ParseExifUserComment(appData.AsSpan(6), out var comment) && comment != null)
+                                {
+                                    var parsed = ParseWebUIParams(comment);
+                                    return parsed with { RawText = comment };
+                                }
+                            }
+                        }
+                        else
+                        {
+                            stream.Seek(dataLen, SeekOrigin.Current);
+                        }
+                        break;
+
+                    case 0xFE: // COM — 註釋
+                        var comData = new byte[dataLen];
+                        stream.ReadExactly(comData);
+                        string comText = Encoding.UTF8.GetString(comData).Trim();
+                        if (comText.Contains("Steps:") || comText.Contains("parameters"))
+                        {
+                            var parsed = ParseWebUIParams(comText);
+                            return parsed with { RawText = comText };
+                        }
+                        break;
+
+                    case 0xC0: // SOF0
+                    case 0xC2: // SOF2（漸進式）
+                        var sofData = new byte[dataLen];
+                        stream.ReadExactly(sofData);
+                        if (sofData.Length >= 5)
+                        {
+                            imgHeight = (sofData[1] << 8) | sofData[2];
+                            imgWidth  = (sofData[3] << 8) | sofData[4];
+                        }
+                        break;
+
+                    default:
+                        stream.Seek(dataLen, SeekOrigin.Current);
+                        break;
+                }
+            }
+        }
+        catch (EndOfStreamException) { }
+
+        // 有尺寸但沒 metadata 的 JPEG 也返回（至少提供尺寸）
+        if (imgWidth > 0 && imgHeight > 0)
+            return new ImageParams(Width: imgWidth, Height: imgHeight);
+
+        return null;
+    }
+
+    /// <summary>從 EXIF TIFF 結構中讀取 UserComment (tag 0x9286)</summary>
+    private static bool ParseExifUserComment(ReadOnlySpan<byte> exifData, out string? comment)
+    {
+        comment = null;
+        try
+        {
+            if (exifData.Length < 8) return false;
+
+            bool isLittle = exifData[0] == 'I' && exifData[1] == 'I';
+
+            // TIFF header 魔數 0x002A
+            if (exifData[2] != 0x2A || exifData[3] != (isLittle ? 0x00 : 0x2A))
+                return false;
+
+            // IFD0 偏移
+            int ifdOffset = isLittle
+                ? exifData[4] | (exifData[5] << 8) | (exifData[6] << 16) | (exifData[7] << 24)
+                : (exifData[4] << 24) | (exifData[5] << 16) | (exifData[6] << 8) | exifData[7];
+
+            if (ifdOffset <= 0 || ifdOffset >= exifData.Length - 2) return false;
+
+            // Entry count
+            int entryCount = isLittle
+                ? exifData[ifdOffset] | (exifData[ifdOffset + 1] << 8)
+                : (exifData[ifdOffset] << 8) | exifData[ifdOffset + 1];
+
+            for (int i = 0; i < entryCount; i++)
+            {
+                int entryOff = ifdOffset + 2 + i * 12;
+                if (entryOff + 12 > exifData.Length) break;
+
+                int tag = isLittle
+                    ? exifData[entryOff] | (exifData[entryOff + 1] << 8)
+                    : (exifData[entryOff] << 8) | exifData[entryOff + 1];
+
+                if (tag != 0x9286) continue; // UserComment
+
+                // Data 的偏移/值（4 字節）
+                int dataOffset = isLittle
+                    ? exifData[entryOff + 8] | (exifData[entryOff + 9] << 8) | (exifData[entryOff + 10] << 16) | (exifData[entryOff + 11] << 24)
+                    : (exifData[entryOff + 8] << 24) | (exifData[entryOff + 9] << 16) | (exifData[entryOff + 10] << 8) | exifData[entryOff + 11];
+
+                if (dataOffset < 0 || dataOffset >= exifData.Length) break;
+
+                var remaining = exifData[dataOffset..];
+                if (remaining.Length < 8) break;
+
+                // 前 8 字節是編碼格式標識
+                string codec = Encoding.ASCII.GetString(remaining[..8].ToArray()).TrimEnd('\0');
+
+                if (codec.StartsWith("ASCII") || codec.StartsWith("UNDEFINED"))
+                    comment = Encoding.ASCII.GetString(remaining[8..].ToArray()).Trim('\0', ' ');
+                else if (codec.StartsWith("UNICODE") || codec.StartsWith("JIS"))
+                    comment = Encoding.Unicode.GetString(remaining[8..].ToArray()).Trim('\0', ' ');
+
+                return comment != null;
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    // ═══════════════════════════════════════
+    //  WebP 解析
+    // ═══════════════════════════════════════
+
+    private static ImageParams? ParseWebP(Stream stream)
+    {
+        int imgWidth = 0, imgHeight = 0;
+
+        while (stream.Position < stream.Length - 8)
+        {
+            var chunkHeader = new byte[8];
+            if (stream.Read(chunkHeader, 0, 8) < 8) break;
+
+            string chunkType = Encoding.ASCII.GetString(chunkHeader, 0, 4);
+            int chunkSize = chunkHeader[4] | (chunkHeader[5] << 8)
+                          | (chunkHeader[6] << 16) | (chunkHeader[7] << 24);
+
+            if (chunkSize <= 0 || chunkSize > stream.Length - stream.Position) break;
+
+            if (chunkType == "VP8 " || chunkType == "VP8L")
+            {
+                var data = new byte[Math.Min(chunkSize, 32)];
+                stream.ReadExactly(data);
+
+                if (chunkType == "VP8 ")
+                {
+                    // VP8 keyframe: 3 sync + 16 bits width/height
+                    if (data.Length >= 10)
+                    {
+                        imgWidth  = ((data[7] & 0x1F) << 8) | data[6];
+                        imgHeight = ((data[9] & 0x01) << 8) | data[8];
+                    }
+                }
+                else // VP8L
+                {
+                    // VP8L: 1 byte sig + 14 bits (width-1, height-1)
+                    if (data.Length >= 5)
+                    {
+                        imgWidth  = (((data[1] & 0x3F) << 8) | ((data[0] & 0xC0) >> 6)) + 1;
+                        imgHeight = (((data[3] & 0x0F) << 8) | ((data[2] & 0xF0) >> 4)) + 1;
+                    }
+                }
+
+                if (chunkSize > 32)
+                    stream.Seek(chunkSize - 32, SeekOrigin.Current);
+
+                continue;
+            }
+
+            // WebP 的 EXIF chunk 格式與 JPEG 相同
+            if (chunkType == "EXIF")
+            {
+                var exifData = new byte[chunkSize];
+                stream.ReadExactly(exifData);
+
+                if (ParseExifUserComment(exifData, out var comment) && comment != null)
+                {
+                    var parsed = ParseWebUIParams(comment);
+                    return parsed with
+                    {
+                        Width = parsed.Width > 0 ? parsed.Width : imgWidth,
+                        Height = parsed.Height > 0 ? parsed.Height : imgHeight,
+                        RawText = comment,
+                    };
+                }
+                break;
+            }
+
+            stream.Seek(chunkSize, SeekOrigin.Current);
+        }
+
+        if (imgWidth > 0 && imgHeight > 0)
+            return new ImageParams(Width: imgWidth, Height: imgHeight);
+
+        return null;
+    }
+
+    // ═══════════════════════════════════════
+    //  工具函數
+    // ═══════════════════════════════════════
+
+    private static int ReadBigEndianInt32(byte[] buf) =>
+        (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+
+    private static int ReadBigEndianInt32(ReadOnlySpan<byte> buf) =>
+        (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
 }

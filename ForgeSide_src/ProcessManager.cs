@@ -377,11 +377,13 @@ public partial class ProcessManager : IDisposable
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
         };
-        _outputWatcher.Created += (_, _) => OnImageGenerated?.Invoke();
+        _outputWatcher.Created += (_, e) =>
+        {
+            if (IsImageFile(e.Name)) OnImageGenerated?.Invoke();
+        };
         _outputWatcher.Renamed += (_, e) =>
         {
-            if (e.Name?.EndsWith(".png", StringComparison.OrdinalIgnoreCase) == true)
-                OnImageGenerated?.Invoke();
+            if (IsImageFile(e.Name)) OnImageGenerated?.Invoke();
         };
     }
 
@@ -405,6 +407,16 @@ public partial class ProcessManager : IDisposable
             _neoProcess.Kill(entireProcessTree: true);
         }
         catch { /* already exited */ }
+    }
+
+    /// <summary>判断文件名是否是支持的 AI 图片格式</summary>
+    private static bool IsImageFile(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        return name.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+            || name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+            || name.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
     }
 
     // ANSI 转义序列 + 回车进度条清理

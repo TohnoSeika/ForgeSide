@@ -216,7 +216,7 @@ public class ThumbnailCache : IDisposable
         foreach (var folder in folders)
         {
             if (!Directory.Exists(folder)) continue;
-            foreach (var file in Directory.GetFiles(folder, "*.png", SearchOption.AllDirectories))
+            foreach (var file in GetImageFiles(folder))
             {
                 try
                 {
@@ -305,5 +305,14 @@ public class ThumbnailCache : IDisposable
     {
         _conn?.Close();
         _conn?.Dispose();
+    }
+
+    /// <summary>获取文件夹中所有支持的 AI 图片文件</summary>
+    private static string[] GetImageFiles(string folder)
+    {
+        return new[] { "*.png", "*.jpg", "*.jpeg", "*.webp" }
+            .SelectMany(ext => Directory.GetFiles(folder, ext, SearchOption.AllDirectories))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }

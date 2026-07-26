@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Linq;
 using Microsoft.Web.WebView2.WinForms;
 using NAudio.Wave;
+using System.Globalization;
 
 namespace ForgeSide;
 
@@ -30,6 +31,12 @@ public class MainForm : Form
         _settings = AppSettings.Load();
         ThemeColors.IsDark = _settings.IsDarkMode;
 
+        // ── 语言初始化 ──
+        string lang = _settings.Language;
+        if (lang == "auto")
+            lang = Lang.DetectSystemLanguage();
+        Lang.SetLanguage(lang);
+
         // 确保输出目录存在（兼容第三方包和官方版）
         string neoRoot = FindNeoRoot();
         string outputDir;
@@ -40,7 +47,7 @@ public class MainForm : Form
         Directory.CreateDirectory(Path.Combine(outputDir, "images"));
         Directory.CreateDirectory(Path.Combine(outputDir, "grids"));
 
-        Text = "ForgeSide V1.4";
+        Text = Lang.T("window.title");
         Size = new Size(840, 640);
         MinimumSize = new Size(840, 640);
         FormBorderStyle = FormBorderStyle.None;
@@ -452,6 +459,15 @@ public class MainForm : Form
         catch { PushConsole("[ForgeSide] 无法打开浏览器", "error"); }
     }
 
+    /// <summary>获取图库文件夹中所有支持的 AI 图片文件（png/jpg/jpeg/webp）</summary>
+    private static string[] GetImageFiles(string folder)
+    {
+        return new[] { "*.png", "*.jpg", "*.jpeg", "*.webp" }
+            .SelectMany(ext => Directory.GetFiles(folder, ext, SearchOption.AllDirectories))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public void OpenFileWithDefaultApp(string filePath)
     {
         try
@@ -505,7 +521,14 @@ public class MainForm : Form
             notificationSoundPath = _settings.NotificationSoundPath,
             galleryFolders = ActiveGalleryFolders,
             thumbnailSize = _settings.ThumbnailSize,
+            language = ResolveLanguage(),
         });
+    }
+
+    /// <summary>解析有效语言代码（auto → 系统检测）</summary>
+    private string ResolveLanguage()
+    {
+        return _settings.Language == "auto" ? Lang.DetectSystemLanguage() : _settings.Language;
     }
 
     public void SaveSetting(string key, string value)
@@ -535,6 +558,11 @@ public class MainForm : Form
                 _settings.GalleryFolders.Remove(value);
                 _settings.Save();
                 break;
+            case "language":
+                _settings.Language = value;
+                _settings.Save();
+                Lang.SetLanguage(value == "auto" ? Lang.DetectSystemLanguage() : value);
+                break;
         }
         _settings.Save();
     }
@@ -549,7 +577,7 @@ public class MainForm : Form
 
     private void PickImage()
     {
-        using var dlg = new OpenFileDialog { Filter = "PNG 图片|*.png|所有文件|*.*" };
+        using var dlg = new OpenFileDialog { Filter = "AI 图片|*.png;*.jpg;*.jpeg;*.webp|所有文件|*.*" };
         if (dlg.ShowDialog() != DialogResult.OK) return;
 
         _lastImageJson = ReadImageParams(dlg.FileName);
@@ -770,7 +798,7 @@ public class MainForm : Form
         foreach (var folder in ActiveGalleryFolders)
         {
             if (!Directory.Exists(folder)) continue;
-            allPaths.AddRange(Directory.GetFiles(folder, "*.png", SearchOption.AllDirectories));
+            allPaths.AddRange(GetImageFiles(folder));
         }
         if (allPaths.Count > 0)
             PreGenerateThumbnails(JsonSerializer.Serialize(allPaths));
@@ -783,7 +811,7 @@ public class MainForm : Form
         _thumbCache?.ScanFolders(new List<string> { folder });
         if (Directory.Exists(folder))
         {
-            var paths = Directory.GetFiles(folder, "*.png", SearchOption.AllDirectories);
+            var paths = GetImageFiles(folder);
             if (paths.Length > 0)
                 PreGenerateThumbnails(JsonSerializer.Serialize(paths));
         }
@@ -799,7 +827,7 @@ public class MainForm : Form
         foreach (var folder in ActiveGalleryFolders)
         {
             if (!Directory.Exists(folder)) continue;
-            foreach (var file in Directory.GetFiles(folder, "*.png", SearchOption.AllDirectories))
+            foreach (var file in GetImageFiles(folder))
             {
                 try
                 {
@@ -1068,13 +1096,16 @@ public class MainForm : Form
             {
                 string neoRoot = FindNeoRoot();
                 string ver = null;
+                // 判断结构：官方版（文件在 neoRoot 下）vs 第三方整合包（文件在 neoRoot/webui/ 下）
+                string webuiDir = Directory.Exists(Path.Combine(neoRoot, "webui"))
+                    ? Path.Combine(neoRoot, "webui") : neoRoot;
                 // 尝试 version.txt
-                string vf = Path.Combine(neoRoot, "webui", "version.txt");
+                string vf = Path.Combine(webuiDir, "version.txt");
                 if (File.Exists(vf)) { ver = File.ReadAllText(vf).Trim(); }
                 // 尝试从 modules_forge/forge_version.py 读取版本号
                 if (string.IsNullOrEmpty(ver))
                 {
-                    string forgeVerPy = Path.Combine(neoRoot, "webui", "modules_forge", "forge_version.py");
+                    string forgeVerPy = Path.Combine(webuiDir, "modules_forge", "forge_version.py");
                     if (File.Exists(forgeVerPy))
                     {
                         try
@@ -1155,9 +1186,15 @@ public class MainForm : Form
         try
         {
             string neoRoot = FindNeoRoot();
-            string webuiDir = Path.Combine(neoRoot, "webui");
-            if (!Directory.Exists(Path.Combine(webuiDir, ".git")))
-                return JsonSerializer.Serialize(new { success = false, error = "webui 目录不是 Git 仓库，无法使用此方式升级" });
+            // 官方版：git 仓库就在 neoRoot 本身（有 launch.py / webui.bat）
+            // 第三方整合包：git 仓库在 neoRoot/webui/ 下
+            string webuiDir;
+            if (Directory.Exists(Path.Combine(neoRoot, ".git")))
+                webuiDir = neoRoot;
+            else if (Directory.Exists(Path.Combine(neoRoot, "webui", ".git")))
+                webuiDir = Path.Combine(neoRoot, "webui");
+            else
+                return JsonSerializer.Serialize(new { success = false, error = "未找到 Forge NEO 的 Git 仓库，无法使用此方式升级" });
 
             PushConsole($"[ForgeSide] 开始升级到 {tagName} …", "info");
             PushConsole("[ForgeSide] 正在连接 GitHub，获取最新版本列表…", "");

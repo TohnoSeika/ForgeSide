@@ -20,6 +20,7 @@ public class AppSettings
     public string NotificationSoundPath { get; set; } = "";        // 空 = 使用系统默认提示音
     public List<string> GalleryFolders { get; set; } = new();     // 图库：监听的文件夹路径列表
     public string ThumbnailSize { get; set; } = "medium";         // 图库：缩略图尺寸 small / medium / large
+    public string Language { get; set; } = "auto";                // auto | zh-CN | zh-TW | en | ja
 
     private static readonly string DefaultPath =
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "forgeside.settings.json");
