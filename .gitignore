@@ -1,0 +1,4 @@
+# 不需要的系統文件
+*.log
+.DS_Store
+Thumbs.db
