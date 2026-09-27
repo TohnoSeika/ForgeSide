@@ -516,9 +516,13 @@ public static class PngParser
             if (exifData.Length < 8) return false;
 
             bool isLittle = exifData[0] == 'I' && exifData[1] == 'I';
+            bool isBig    = exifData[0] == 'M' && exifData[1] == 'M';
+            if (!isLittle && !isBig) return false;
 
-            // TIFF header 魔數 0x002A
-            if (exifData[2] != 0x2A || exifData[3] != (isLittle ? 0x00 : 0x2A))
+            // TIFF header 魔數 0x002A——小端寫成 2A 00，大端寫成 00 2A。
+            // 這裡以前兩種都要求第 3 個 byte 是 0x2A，大端檔案永遠過不了
+            if (isLittle ? (exifData[2] != 0x2A || exifData[3] != 0x00)
+                         : (exifData[2] != 0x00 || exifData[3] != 0x2A))
                 return false;
 
             // IFD0 偏移
@@ -596,20 +600,22 @@ public static class PngParser
 
                 if (chunkType == "VP8 ")
                 {
-                    // VP8 keyframe: 3 sync + 16 bits width/height
+                    // VP8 keyframe：3 byte sync + 3 byte start code，然後寬高各 14 bit
+                    // （低 8 位在前，高 6 位在後一個 byte 的 bit0-5）
                     if (data.Length >= 10)
                     {
-                        imgWidth  = ((data[7] & 0x1F) << 8) | data[6];
-                        imgHeight = ((data[9] & 0x01) << 8) | data[8];
+                        imgWidth  = data[6] | ((data[7] & 0x3F) << 8);
+                        imgHeight = data[8] | ((data[9] & 0x3F) << 8);
                     }
                 }
                 else // VP8L
                 {
-                    // VP8L: 1 byte sig + 14 bits (width-1, height-1)
+                    // VP8L：1 byte 簽名 + 小端 32 位，裡面塞著 (寬-1, 高-1)，各 14 bit
                     if (data.Length >= 5)
                     {
-                        imgWidth  = (((data[1] & 0x3F) << 8) | ((data[0] & 0xC0) >> 6)) + 1;
-                        imgHeight = (((data[3] & 0x0F) << 8) | ((data[2] & 0xF0) >> 4)) + 1;
+                        int packed = data[1] | (data[2] << 8) | (data[3] << 16) | (data[4] << 24);
+                        imgWidth  = (packed & 0x3FFF) + 1;
+                        imgHeight = ((packed >> 14) & 0x3FFF) + 1;
                     }
                 }
 

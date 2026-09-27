@@ -350,13 +350,16 @@
   .console-line.warn  { color: var(--console-warn); }
   .console-line.info  { color: var(--console-info); }
   .console-line .ts { color: var(--console-dim); margin-right: 8px; font-size: 10px; user-select: none; }
+  .console-line.note { font-size: 11.5px; color: var(--console-dim); }
 
   .console-btn-row {
     position: absolute; bottom: 24px; right: 24px;
     display: flex; gap: 10px; z-index: 2;
   }
+  /* min-width 是给文案长短兜底的。以前靠"两句话字数一样"保证按钮不跳，
+     多了「正在终止」这一种就不成立了——而且那种保证，下一个只改文案的人一定会悄悄弄坏 */
   .btn-console {
-    padding: 9px 22px; border-radius: var(--radius-pill);
+    min-width: 104px; padding: 9px 22px; border-radius: var(--radius-pill);
     border: none; cursor: pointer; font-family: var(--font); font-size: 12px;
     font-weight: 500; transition: all var(--transition);
     background: var(--border); color: var(--text-muted);
@@ -810,7 +813,7 @@
 
 <div class="titlebar" id="titlebar">
   <div class="logo"><img src="" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
-  <h1>ForgeSide V1.41</h1>
+  <h1>ForgeSide V1.5</h1>
   <span class="env-tag" data-i18n="home.env_tag">NEO 已识别</span>
   <div class="win-ctrls">
     <button class="win-btn" onclick="bridge('minimize')" data-i18n-title="win.minimize" title="最小化">
@@ -942,7 +945,7 @@
     </div>
     <div class="console-btn-row">
       <button class="btn-console webui" id="btnOpenWebui" onclick="bridge('openWebui')" data-i18n="console.webui_btn">打开 WebUI</button>
-      <button class="btn-console" id="btnStopConsole" onclick="stopNeoConfirm()" data-i18n="console.stop_btn">终止 NEO</button>
+      <button class="btn-console active" id="btnConsoleNeo" onclick="onConsoleNeoButton()">启动 NEO</button>
     </div>
   </div>
 </div>
@@ -970,7 +973,7 @@
         </button>
         <button class="v-upgrade-btn" id="vUpgradeBtn" onclick="showUpgradeConfirm()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
-          <span data-i18n="version.upgrade">升级</span>
+          <span id="vUpgradeBtnLabel" data-i18n="version.upgrade">升级</span>
         </button>
         <span style="font-size:10.5px;color:var(--text-muted);text-align:center;white-space:nowrap;" id="vUpgradeHint" data-i18n="version.select_hint">请选择版本</span>
       </div>
@@ -1027,21 +1030,14 @@
     <div class="sg">
       <div class="sgt" data-i18n="settings.launch">启动设置</div>
       <div class="sr" style="gap:16px;">
-        <span class="sl" data-i18n="settings.launch_engine">启动引擎</span>
-        <select class="select-pill" id="launchMethod" onchange="onLaunchMethodChange()" style="flex:1;">
-          <option value="auto" data-i18n="settings.launch_auto">自动（优先直接启动）</option>
-          <option value="direct" data-i18n="settings.launch_direct">直接启动（python launch.py）</option>
-          <option value="bat" data-i18n="settings.launch_bat">Bat 方式（webui.bat）</option>
-        </select>
-        <span class="sl" style="margin-left:4px;" data-i18n="settings.launch_mode">启动模式</span>
+        <span class="sl" data-i18n="settings.launch_mode">启动模式</span>
         <select class="select-pill" id="launchMode" onchange="onLaunchModeChange()" style="flex:1;">
           <option value="sdp" data-i18n="settings.launch_sdp">SDP（兼容性优先，禁用加速）</option>
           <option value="sage" data-i18n="settings.launch_sage">Sage（启用 SageAttention 加速）</option>
           <option value="standard" data-i18n="settings.launch_standard">标准</option>
         </select>
       </div>
-      <div class="sh" id="launchMethodHint">自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式</div>
-      <div class="sh" style="color:var(--accent);margin-top:6px;" data-i18n="settings.launch_fallback">如"直接启动"和"Bat模式"均告失败，请手动将启动用bat文件复制一份后重命名为"webui.bat"再次尝试</div>
+      <div class="sh" data-i18n="settings.launch_auto_hint">启动方式自动判断；若启动后立即退出，会自动换另一种方式重试</div>
     </div>
 
     <div class="sg">
@@ -1126,7 +1122,7 @@
       <div class="about-row">
         <span class="about-icon">✦</span>
         <span class="about-title">ForgeSide</span>
-        <span class="about-version">V1.41</span>
+        <span class="about-version">V1.5</span>
       </div>
       <div class="about-line" data-i18n="about.free">本软件为免费软件，不会收取任何费用</div>
       <div class="about-line"><span data-i18n="about.dev">Developed by</span> <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a><a class="github-icon" href="https://github.com/TohnoSeika" title="GitHub"></a></div>
@@ -1224,6 +1220,42 @@
     catch(e) { console.error('Bridge error:', e); }
   }
 
+  // ═══ 长任务通道 ═══
+  // 同步桥有个绕不开的脾气：调用期间它把 JS 线程和 UI 线程一起占住。
+  // 所以 git fetch、WMI 查询这类活儿不能同步等它——这里包成一个 Promise：
+  // 先登记回调再发起，C# 在后台干完了从另一端喊回来。调用点就能写成
+  //   forgeSideLongTask('upgrade', tag).then(...)
+  var _longTaskSeq = 0;
+  var _longTaskWaiters = {};
+
+  function forgeSideLongTask(taskName, arg) {
+    // 刻意不设超时：C# 那边每一条路径都会回报（连异常都兜住了）。
+    // 唯一不回报的情况是窗口已经销毁——那时候程序正在关，挂着也无所谓
+    return new Promise(function(resolve, reject) {
+      var requestId = 'lt' + (++_longTaskSeq);
+      // 先登记再发起。反过来的话，活干得太快就会在登记之前回来，这个 Promise 永远等不到人
+      _longTaskWaiters[requestId] = function(ok, payload) {
+        delete _longTaskWaiters[requestId];
+        if (ok) { resolve(payload); return; }
+        var reason = '';
+        try { reason = JSON.parse(payload).error; } catch(e) { /* 拿不到原因就用兜底文案 */ }
+        reject(new Error(reason || 'long task failed'));
+      };
+      try {
+        chrome.webview.hostObjects.sync.forgeSide.RequestLongTask(requestId, taskName, arg || '');
+      } catch(e) {
+        delete _longTaskWaiters[requestId];
+        reject(e);
+      }
+    });
+  }
+
+  // C# 侧的回来口
+  function forgeSide_onLongTaskDone(requestId, ok, payload) {
+    var waiter = _longTaskWaiters[requestId];
+    if (waiter) waiter(ok, payload);
+  }
+
   // ── GitHub 图标 — 在默认浏览器中打开链接 ──
   document.querySelector('.github-icon')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1277,32 +1309,125 @@
     });
   }
 
+  /// 控制台右下角那个按钮：跑着是「终止 NEO」，没跑是「启动 NEO」，
+  /// 正在关的时候是「正在终止」——那个状态以前被算进了「没跑」，
+  /// 于是按钮会说「启动 NEO」，点下去还会被 C# 那边默默吃掉。
+  /// 宽度交给 CSS 的 min-width 兜着，所以文案只管好读
+  function updateConsoleNeoButton() {
+    const btn = document.getElementById('btnConsoleNeo');
+    if (!btn) return;
+    btn.textContent = t(neoWords().console);
+  }
+
+  /// 同一个位置放相反的两件事，所以「终止」那一路还是留着确认弹窗；
+  /// 「启动」不用确认——主界面那颗按钮也是点了就走。
+  /// 「正在终止」点了不该有反应，所以整条路直接不进去。
+  function onConsoleNeoButton() {
+    if (neoRunning()) stopNeoConfirm();
+    else if (!neoBusy()) bridge('launch');
+  }
+
   // ═══ C# → JS 回调 ═══
-  function forgeSide_onStatus(running) {
-    isRunning = running;
+  // C# 那边送过来的是 'idle' / 'running' / 'stopping' 三个词之一。
+  // 以前这里只有 true/false，于是「正在终止」在界面上的每一步都被当成「没在跑」
+  function forgeSide_onStatus(state) {
+    // 只认表里那三个词，在边界上归一次。C# 那边万一拼错一个字母（"Running" 之类），
+    // 宁可整句话退回「未启动」，也不要弄出一个"文字说未启动、灯却亮着"的半状态
+    neoState = NEO_STATE_WORDS[state] ? state : 'idle';
+
     const dot = document.getElementById('statusDot');
     const txt = document.getElementById('statusText');
     const launch = document.getElementById('btnLaunch');
 
-    dot.className = 'status-dot ' + (running ? 'live' : '');
-    txt.textContent = running ? t('status.running') : t('status.stopped');
+    dot.className = 'status-dot ' + (neoBusy() ? 'live' : '');
+    txt.textContent = t(neoWords().status);
 
-    launch.classList.toggle('running', running);
-    launch.querySelector('.fn').textContent = running ? t('status.run_btn') : t('status.launch_btn');
+    launch.classList.toggle('running', neoBusy());
+    launch.querySelector('.fn').textContent = t(neoWords().button);
     updateLaunchHint();
 
-    document.getElementById('btnStopConsole').classList.toggle('active', running);
-    document.getElementById('btnOpenWebui').classList.toggle('active', running);
+    // 这个按钮两头都有用，就不跟着状态变灰了；WebUI 没跑起来时点了没意义，还是灰着
+    updateConsoleNeoButton();
+    document.getElementById('btnOpenWebui').classList.toggle('active', neoRunning());
   }
 
-  function forgeSide_onConsole(text, type) {
+  // ═══ 控制台 ═══
+  // 这个控制台有两层「不会长到天上去」的保证，分工不一样：
+  //   跨启动 —— 每次点「启动」时 C# 喊一次 forgeSide_onConsoleClear()。
+  //             停止的时候不清，刚跑完那一轮的日志还得留着给人回头看。
+  //   一次启动内部 —— 下面这个行数上限。一次长生成也能吐几千行，
+  //             光靠清空管不住。
+  const CONSOLE_KEEP_LINES = 5000;
+
+  // 只认这三种颜色类名。type 是从 C# 一路传过来的字符串，
+  // 不白名单化就等于把 class 属性交给对面去拼
+  const CONSOLE_KINDS = ['error', 'warn', 'info'];
+
+  let _consoleTrimmed = 0;   // 已经被裁掉多少行，攒着一起告诉用户
+  let _lastPollError = '';   // 轮询上次报的错，用来去重
+
+  /// C# 那边把行攒成一批再送过来（最多 100 行或 120ms 一批），
+  /// 所以这里一次插入、一次滚动就够——以前是每一行各来一遍。
+  function forgeSide_onConsole(batch) {
     const box = document.getElementById('consoleBox');
-    const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-    const div = document.createElement('div');
-    div.className = 'console-line ' + (type || '');
-    div.innerHTML = '<span class="ts">' + ts + '</span>' + escHtml(text);
-    box.appendChild(div);
+    if (!box || !batch || !batch.length) return;
+
+    const stamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    const fragment = document.createDocumentFragment();
+    for (const line of batch) fragment.appendChild(consoleLineEl(line, stamp));
+
+    // fragment 整块进去，只触发一次布局；文本走 textContent，
+    // 不经过 HTML 解析，也就没有转义漏掉这种事了
+    box.appendChild(fragment);
+    trimConsoleLines(box);
     box.scrollTop = box.scrollHeight;
+  }
+
+  /// 清空控制台——C# 在每次「启动」的时候喊一次，给两轮之间划条线
+  function forgeSide_onConsoleClear() {
+    const box = document.getElementById('consoleBox');
+    if (!box) return;
+    box.replaceChildren();
+    _consoleTrimmed = 0;
+  }
+
+  function consoleLineEl(line, stamp) {
+    const el = document.createElement('div');
+    el.className = 'console-line ' + (CONSOLE_KINDS.indexOf(line.type) >= 0 ? line.type : '');
+
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = stamp;
+    el.appendChild(ts);
+    el.appendChild(document.createTextNode(line.text));
+    return el;
+  }
+
+  /// 超出行数上限就从最老的开始摘，并在顶上留一行说明少了多少。
+  /// 静默丢日志是最糟糕的做法——回头去日志里找一句报错，
+  /// 找不到的时候人只会怀疑自己，不会怀疑控制台。
+  function trimConsoleLines(box) {
+    const noteOnTop = box.firstElementChild?.classList.contains('note') ? 1 : 0;
+    const overflow = box.childElementCount - noteOnTop - CONSOLE_KEEP_LINES;
+    if (overflow <= 0) return;
+
+    let cursor = noteOnTop ? box.firstElementChild.nextElementSibling : box.firstElementChild;
+    for (let i = 0; i < overflow && cursor; i++) {
+      const next = cursor.nextElementSibling;
+      cursor.remove();
+      cursor = next;
+    }
+    _consoleTrimmed += overflow;
+
+    if (noteOnTop) {
+      // 省略提示已经在最前面了，就地更新数字就行
+      box.firstElementChild.textContent = t('console.trimmed', _consoleTrimmed);
+      return;
+    }
+    const note = document.createElement('div');
+    note.className = 'console-line note';
+    note.textContent = t('console.trimmed', _consoleTrimmed);
+    box.prepend(note);
   }
 
   // ═══ 最大化状态变更回调 ═══
@@ -1328,7 +1453,7 @@
       'tab.home': '首页', 'tab.params': '图片参数', 'tab.gallery': '图库',
       'tab.console': '控制台', 'tab.versions': '版本管理', 'tab.settings': '设置',
       // ── 状态 ──
-      'status.stopped': '未启动', 'status.running': '运行中',
+      'status.stopped': '未启动', 'status.running': '运行中', 'status.stopping': '正在终止…',
       'status.run_btn': '正在运行…', 'status.launch_btn': '启动 Forge NEO',
       // ── 首页 ──
       'home.banner.ph': '背景图片区域',
@@ -1338,6 +1463,7 @@
       'home.folder.lora': 'Lora', 'home.folder.root': '根目录',
       'home.env_tag': 'NEO 已识别',
       'home.running_mode': 'NEO 运行中 · {0}', 'home.idle_mode': '{0} 模式',
+      'home.stopping_mode': 'NEO 正在终止 · {0}',
       // ── 图片参数 ──
       'params.dropzone': '点击这里载入图片，或拖曳图片到此页面任意区域',
       'params.dropzone.sub': '支持 WebUI / Forge / ComfyUI 生成的 PNG',
@@ -1352,7 +1478,10 @@
       'gallery.no_params': '无参数信息',
       // ── 控制台 ──
       'console.ready': 'ForgeSide 已就绪，等待启动 Forge NEO...',
-      'console.webui_btn': '打开 WebUI', 'console.stop_btn': '终止 NEO',
+      'console.trimmed': '（前面的 {0} 行已经省略了）',
+      'console.webui_btn': '打开 WebUI',
+      'console.stop_btn': '终止 NEO', 'console.launch_btn': '启动 NEO',
+      'console.stopping_btn': '正在终止',
       // ── 版本管理 ──
       'version.local_label': '本地当前版本',
       'version.latest_label': 'GitHub 最新版本',
@@ -1363,6 +1492,7 @@
       'version.no_local': '未能获取本地版本信息',
       'version.local_sub': 'Forge NEO 当前安装的版本',
       'version.loading': '正在获取版本信息…',
+      'version.reading_local': '正在读取本地版本…',
       'version.load_failed': '加载失败',
       'version.no_releases': '暂无发布版本',
       'version.badge_current': '本地当前版本',
@@ -1373,6 +1503,8 @@
       'version.select_title': '选择此版本进行升级',
       'version.selected': '已选择：{0}',
       'version.upgrading_to': '正在升级到 {0}，请稍候…',
+      'version.upgrade_done': '✅ 升级成功！版本已更新为 {0}',
+      'version.unknown_error': '未知错误',
       'version.fetch_error': '获取版本信息失败：{0}',
       'version.retry': '重试',
       'version.latest_available': '有新版本可用',
@@ -1383,18 +1515,11 @@
       'settings.light': '亮色模式', 'settings.light_desc': '温暖、柔和的日间色调',
       'settings.dark': '暗色模式', 'settings.dark_desc': '深邃、沉浸的夜间色调',
       'settings.launch': '启动设置',
-      'settings.launch_engine': '启动引擎',
-      'settings.launch_auto': '自动（优先直接启动）',
-      'settings.launch_direct': '直接启动（python launch.py）',
-      'settings.launch_bat': 'Bat 方式（webui.bat）',
       'settings.launch_mode': '启动模式',
       'settings.launch_sdp': 'SDP（兼容性优先，禁用加速）',
       'settings.launch_sage': 'Sage（启用 SageAttention 加速）',
       'settings.launch_standard': '标准',
-      'settings.launch_hint_auto': '自动模式：优先尝试直接 python launch.py，找不到 Python 环境时自动回退到 bat 方式',
-      'settings.launch_hint_direct': '强制使用 python launch.py 直接启动',
-      'settings.launch_hint_bat': '强制使用 webui.bat 方式启动',
-      'settings.launch_fallback': '如"直接启动"和"Bat模式"均告失败，请手动将启动用bat文件复制一份后重命名为"webui.bat"再次尝试',
+      'settings.launch_auto_hint': '启动方式自动判断；若启动后立即退出，会自动换另一种方式重试',
       'settings.notification': '生成提示',
       'settings.notif_toggle': '图片生成完毕时播放提示音',
       'settings.notif_custom': '自定义音效',
@@ -1410,6 +1535,8 @@
       'settings.proxy_hint_off': '关闭 — NEO 网络流量将直接连接',
       'settings.proxy_testing': '⏳ 正在测试连接 {0}…',
       'settings.proxy_test_btn': '测试中 请稍后…',
+      'settings.proxy_testing_google': '点击测试 Google 连接性',
+      'settings.proxy_testing_hf': '点击测试 Hugging Face 连接性',
       'settings.proxy_success': '<span style="color:var(--console-green);">✅ 你可以正常连接 {0}</span>',
       'settings.proxy_fail': '<span style="color:var(--console-error);">❌ 无法连接 {0}</span>',
       'settings.proxy_err': '<span style="color:var(--console-error);">❌ 测试出错：{0}</span>',
@@ -1456,6 +1583,7 @@
       'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
       'sysinfo.no_data': '无法获取系统信息',
       'sysinfo.err': '获取失败: {0}',
+      'sysinfo.loading': '正在读取系统信息…',
       // ── 确认弹窗 ──
       'confirm.cancel': '取消', 'confirm.ok': '确认', 'confirm.alert_ok': '确定',
       'confirm.stop_neo': '确定要终止 NEO 进程吗？',
@@ -1469,7 +1597,9 @@
       'confirm.remove_folder': '确定要移除该图库文件夹吗？\n「{0}」\n不会删除原文件，仅从 ForgeSide 中移除。',
       'confirm.upgrade': '确定升级/更换到此版本吗？',
       'confirm.same_ver': '不能在相同版本间切换！',
+      'confirm.local_unknown': '（本地版本还没读出来，这次没能确认是不是同一个版本）',
       'confirm.upgrade_fail': '升级失败：{0}',
+      'confirm.upgrade_crash': '升级出错：{0}',
       // ── 窗口按钮 ──
       'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '还原', 'win.close': '关闭',
       // ── 复制按钮 ──
@@ -1482,7 +1612,7 @@
     zhTW: {
       'tab.home': '首頁', 'tab.params': '圖片參數', 'tab.gallery': '圖庫',
       'tab.console': '控制台', 'tab.versions': '版本管理', 'tab.settings': '設定',
-      'status.stopped': '未啟動', 'status.running': '執行中',
+      'status.stopped': '未啟動', 'status.running': '執行中', 'status.stopping': '正在終止…',
       'status.run_btn': '正在執行…', 'status.launch_btn': '啟動 Forge NEO',
       'home.banner.ph': '背景圖片區域',
       'home.banner.hint': '在「設定」中選擇圖片',
@@ -1491,6 +1621,7 @@
       'home.folder.lora': 'Lora', 'home.folder.root': '根目錄',
       'home.env_tag': 'NEO 已识别',
       'home.running_mode': 'NEO 執行中 · {0}', 'home.idle_mode': '{0} 模式',
+      'home.stopping_mode': 'NEO 正在終止 · {0}',
       'params.dropzone': '點擊此處載入圖片，或拖曳圖片到此頁面任意區域',
       'params.dropzone.sub': '支援 WebUI / Forge / ComfyUI 生成的 PNG',
       'params.preview': '預覽',
@@ -1502,7 +1633,10 @@
       'gallery.params_title': '圖片參數',
       'gallery.no_params': '無參數資訊',
       'console.ready': 'ForgeSide 已就緒，等待啟動 Forge NEO...',
-      'console.webui_btn': '打開 WebUI', 'console.stop_btn': '終止 NEO',
+      'console.trimmed': '（前面的 {0} 行已經省略了）',
+      'console.webui_btn': '打開 WebUI',
+      'console.stop_btn': '終止 NEO', 'console.launch_btn': '啟動 NEO',
+      'console.stopping_btn': '正在終止',
       'version.local_label': '本地目前版本',
       'version.latest_label': 'GitHub 最新版本',
       'version.refresh': '重新整理',
@@ -1512,6 +1646,7 @@
       'version.no_local': '未能獲取本地版本資訊',
       'version.local_sub': 'Forge NEO 目前安裝的版本',
       'version.loading': '正在獲取版本資訊…',
+      'version.reading_local': '正在讀取本地版本…',
       'version.load_failed': '載入失敗',
       'version.no_releases': '暫無發佈版本',
       'version.badge_current': '本地目前版本',
@@ -1522,6 +1657,8 @@
       'version.select_title': '選擇此版本進行升級',
       'version.selected': '已選擇：{0}',
       'version.upgrading_to': '正在升級到 {0}，請稍候…',
+      'version.upgrade_done': '✅ 升級成功！版本已更新為 {0}',
+      'version.unknown_error': '未知錯誤',
       'version.fetch_error': '獲取版本資訊失敗：{0}',
       'version.retry': '重試',
       'version.latest_available': '有新版本可用',
@@ -1531,18 +1668,11 @@
       'settings.light': '亮色模式', 'settings.light_desc': '溫暖、柔和的日間色調',
       'settings.dark': '暗色模式', 'settings.dark_desc': '深邃、沉浸的夜間色調',
       'settings.launch': '啟動設定',
-      'settings.launch_engine': '啟動引擎',
-      'settings.launch_auto': '自動（優先直接啟動）',
-      'settings.launch_direct': '直接啟動（python launch.py）',
-      'settings.launch_bat': 'Bat 方式（webui.bat）',
       'settings.launch_mode': '啟動模式',
       'settings.launch_sdp': 'SDP（相容性優先，禁用加速）',
       'settings.launch_sage': 'Sage（啟用 SageAttention 加速）',
       'settings.launch_standard': '標準',
-      'settings.launch_hint_auto': '自動模式：優先嘗試直接 python launch.py，找不到 Python 環境時自動回退到 bat 方式',
-      'settings.launch_hint_direct': '強制使用 python launch.py 直接啟動',
-      'settings.launch_hint_bat': '強制使用 webui.bat 方式啟動',
-      'settings.launch_fallback': '如"直接啟動"和"Bat模式"均告失敗，請手動將啟動用bat文件複製一份後重新命名為"webui.bat"再次嘗試',
+      'settings.launch_auto_hint': '啟動方式自動判斷；若啟動後立即結束，會自動改用另一種方式重試',
       'settings.notification': '生成提示',
       'settings.notif_toggle': '圖片生成完畢時播放提示音',
       'settings.notif_custom': '自訂音效',
@@ -1558,6 +1688,8 @@
       'settings.proxy_hint_off': '關閉 — NEO 網路流量將直接連接',
       'settings.proxy_testing': '⏳ 正在測試連接 {0}…',
       'settings.proxy_test_btn': '測試中 請稍後…',
+      'settings.proxy_testing_google': '點擊測試 Google 連接性',
+      'settings.proxy_testing_hf': '點擊測試 Hugging Face 連接性',
       'settings.proxy_success': '<span style="color:var(--console-green);">✅ 你可以正常連接 {0}</span>',
       'settings.proxy_fail': '<span style="color:var(--console-error);">❌ 無法連接 {0}</span>',
       'settings.proxy_err': '<span style="color:var(--console-error);">❌ 測試出錯：{0}</span>',
@@ -1601,6 +1733,7 @@
       'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
       'sysinfo.no_data': '無法取得系統資訊',
       'sysinfo.err': '取得失敗: {0}',
+      'sysinfo.loading': '正在讀取系統資訊…',
       'confirm.cancel': '取消', 'confirm.ok': '確認', 'confirm.alert_ok': '確定',
       'confirm.stop_neo': '確定要終止 NEO 程序嗎？',
       'confirm.refresh_all': '確定要重新整理全部圖庫資料夾嗎？\n將重新掃描所有 PNG 並生成縮圖。',
@@ -1613,7 +1746,9 @@
       'confirm.remove_folder': '確定要移除此圖庫資料夾嗎？\n「{0}」\n不會刪除原檔案，僅從 ForgeSide 中移除。',
       'confirm.upgrade': '確定升級/更換到此版本嗎？',
       'confirm.same_ver': '不能在相同版本間切換！',
+      'confirm.local_unknown': '（本地版本還沒讀出來，這次沒能確認是不是同一個版本）',
       'confirm.upgrade_fail': '升級失敗：{0}',
+      'confirm.upgrade_crash': '升級出錯：{0}',
       'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '還原', 'win.close': '關閉',
       'copy.btn': '複製',
       'sound.current': '目前音效：{0}',
@@ -1622,7 +1757,7 @@
     en: {
       'tab.home': 'Home', 'tab.params': 'Image Params', 'tab.gallery': 'Gallery',
       'tab.console': 'Console', 'tab.versions': 'Versions', 'tab.settings': 'Settings',
-      'status.stopped': 'Stopped', 'status.running': 'Running',
+      'status.stopped': 'Stopped', 'status.running': 'Running', 'status.stopping': 'Stopping…',
       'status.run_btn': 'Running…', 'status.launch_btn': 'Launch Forge NEO',
       'home.banner.ph': 'Background Image Area',
       'home.banner.hint': 'Choose an image in Settings',
@@ -1631,6 +1766,7 @@
       'home.folder.lora': 'Lora', 'home.folder.root': 'Root',
       'home.env_tag': 'NEO Detected',
       'home.running_mode': 'NEO Running · {0}', 'home.idle_mode': '{0} Mode',
+      'home.stopping_mode': 'NEO stopping · {0}',
       'params.dropzone': 'Click to load an image, or drop a PNG anywhere',
       'params.dropzone.sub': 'Supports WebUI / Forge / ComfyUI PNGs',
       'params.preview': 'Preview',
@@ -1642,7 +1778,10 @@
       'gallery.params_title': 'Image Params',
       'gallery.no_params': 'No parameter info',
       'console.ready': 'ForgeSide ready. Waiting to launch Forge NEO...',
-      'console.webui_btn': 'Open WebUI', 'console.stop_btn': 'Stop NEO',
+      'console.trimmed': '({0} earlier lines omitted)',
+      'console.webui_btn': 'Open WebUI',
+      'console.stop_btn': 'Stop NEO', 'console.launch_btn': 'Launch NEO',
+      'console.stopping_btn': 'Stopping',
       'version.local_label': 'Local Version',
       'version.latest_label': 'Latest on GitHub',
       'version.refresh': 'Refresh',
@@ -1652,6 +1791,7 @@
       'version.no_local': 'Could not get local version',
       'version.local_sub': 'Currently installed Forge NEO version',
       'version.loading': 'Fetching version info…',
+      'version.reading_local': 'Reading the local version…',
       'version.load_failed': 'Load failed',
       'version.no_releases': 'No releases yet',
       'version.badge_current': 'Current',
@@ -1662,6 +1802,8 @@
       'version.select_title': 'Select this version to upgrade',
       'version.selected': 'Selected: {0}',
       'version.upgrading_to': 'Upgrading to {0}…',
+      'version.upgrade_done': '✅ Upgrade complete! Now at {0}',
+      'version.unknown_error': 'Unknown error',
       'version.fetch_error': 'Failed to fetch releases: {0}',
       'version.retry': 'Retry',
       'version.latest_available': 'New version available',
@@ -1671,18 +1813,11 @@
       'settings.light': 'Light Mode', 'settings.light_desc': 'Warm, gentle daytime colors',
       'settings.dark': 'Dark Mode', 'settings.dark_desc': 'Deep, immersive nighttime colors',
       'settings.launch': 'Launch Settings',
-      'settings.launch_engine': 'Engine',
-      'settings.launch_auto': 'Auto (prefer direct launch)',
-      'settings.launch_direct': 'Direct (python launch.py)',
-      'settings.launch_bat': 'Bat (webui.bat)',
       'settings.launch_mode': 'Launch Mode',
       'settings.launch_sdp': 'SDP (compatibility, no acceleration)',
       'settings.launch_sage': 'Sage (with SageAttention acceleration)',
       'settings.launch_standard': 'Standard',
-      'settings.launch_hint_auto': 'Auto: tries direct launch first, falls back to bat if Python is not found',
-      'settings.launch_hint_direct': 'Force direct launch with python launch.py',
-      'settings.launch_hint_bat': 'Force launch via webui.bat',
-      'settings.launch_fallback': 'If both methods fail, copy your launch bat file and rename it to "webui.bat" to try again.',
+      'settings.launch_auto_hint': 'Launch method is chosen automatically; if it exits right after starting, the other method is tried',
       'settings.notification': 'Notifications',
       'settings.notif_toggle': 'Play sound when image generation completes',
       'settings.notif_custom': 'Custom Sound',
@@ -1698,6 +1833,8 @@
       'settings.proxy_hint_off': 'Off — NEO will connect directly',
       'settings.proxy_testing': '⏳ Testing connection to {0}…',
       'settings.proxy_test_btn': 'Testing…',
+      'settings.proxy_testing_google': 'Test Google connectivity',
+      'settings.proxy_testing_hf': 'Test Hugging Face connectivity',
       'settings.proxy_success': '<span style="color:var(--console-green);">✅ Connected to {0}</span>',
       'settings.proxy_fail': '<span style="color:var(--console-error);">❌ Cannot connect to {0}</span>',
       'settings.proxy_err': '<span style="color:var(--console-error);">❌ Test error: {0}</span>',
@@ -1741,6 +1878,7 @@
       'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
       'sysinfo.no_data': 'Unable to fetch system info',
       'sysinfo.err': 'Fetch error: {0}',
+      'sysinfo.loading': 'Reading system info…',
       'confirm.cancel': 'Cancel', 'confirm.ok': 'Confirm', 'confirm.alert_ok': 'OK',
       'confirm.stop_neo': 'Stop Forge NEO process?',
       'confirm.refresh_all': 'Refresh all gallery folders?\nThis will rescan all PNGs and regenerate thumbnails.',
@@ -1753,7 +1891,9 @@
       'confirm.remove_folder': 'Remove this gallery folder?\n「{0}」\nThe source files will not be deleted.',
       'confirm.upgrade': 'Upgrade/switch to this version?',
       'confirm.same_ver': 'Cannot switch to the same version!',
+      'confirm.local_unknown': '(The local version could not be read, so this was not checked.)',
       'confirm.upgrade_fail': 'Upgrade failed: {0}',
+      'confirm.upgrade_crash': 'Upgrade error: {0}',
       'win.minimize': 'Minimize', 'win.maximize': 'Maximize', 'win.restore': 'Restore', 'win.close': 'Close',
       'copy.btn': 'Copy',
       'sound.current': 'Current sound: {0}',
@@ -1762,7 +1902,7 @@
     ja: {
       'tab.home': 'ホーム', 'tab.params': '画像パラメータ', 'tab.gallery': 'ギャラリー',
       'tab.console': 'コンソール', 'tab.versions': 'バージョン', 'tab.settings': '設定',
-      'status.stopped': '停止中', 'status.running': '実行中',
+      'status.stopped': '未起動', 'status.running': '実行中', 'status.stopping': '停止中…',
       'status.run_btn': '実行中…', 'status.launch_btn': 'Forge NEO 起動',
       'home.banner.ph': '背景画像エリア',
       'home.banner.hint': '設定で画像を選択',
@@ -1771,6 +1911,7 @@
       'home.folder.lora': 'Lora', 'home.folder.root': 'ルート',
       'home.env_tag': 'NEO 検出済み',
       'home.running_mode': 'NEO 実行中 · {0}', 'home.idle_mode': '{0} モード',
+      'home.stopping_mode': 'NEO 停止中 · {0}',
       'params.dropzone': 'クリックして画像を読み込むか、PNG をドロップ',
       'params.dropzone.sub': 'WebUI / Forge / ComfyUI の PNG に対応',
       'params.preview': 'プレビュー',
@@ -1782,7 +1923,10 @@
       'gallery.params_title': '画像パラメータ',
       'gallery.no_params': 'パラメータ情報がありません',
       'console.ready': 'ForgeSide 準備完了。Forge NEO の起動を待っています…',
-      'console.webui_btn': 'WebUI を開く', 'console.stop_btn': 'NEO 停止',
+      'console.trimmed': '（前の {0} 行は省略しました）',
+      'console.webui_btn': 'WebUI を開く',
+      'console.stop_btn': 'NEO 停止', 'console.launch_btn': 'NEO 起動',
+      'console.stopping_btn': '停止中',
       'version.local_label': 'ローカル版',
       'version.latest_label': 'GitHub 最新版',
       'version.refresh': '更新',
@@ -1792,6 +1936,7 @@
       'version.no_local': 'ローカル版の情報を取得できません',
       'version.local_sub': '現在インストールされている Forge NEO のバージョン',
       'version.loading': 'バージョン情報を取得中…',
+      'version.reading_local': 'ローカルバージョンを読み取り中…',
       'version.load_failed': '読み込み失敗',
       'version.no_releases': 'リリースがありません',
       'version.badge_current': '現在のバージョン',
@@ -1802,6 +1947,8 @@
       'version.select_title': 'このバージョンを選択',
       'version.selected': '選択中：{0}',
       'version.upgrading_to': '{0} にアップグレード中…',
+      'version.upgrade_done': '✅ アップグレード完了！{0} になりました',
+      'version.unknown_error': '不明なエラー',
       'version.fetch_error': 'リリースの取得に失敗：{0}',
       'version.retry': '再試行',
       'version.latest_available': '新しいバージョンがあります',
@@ -1811,18 +1958,11 @@
       'settings.light': 'ライトモード', 'settings.light_desc': '暖かく優しい日中色',
       'settings.dark': 'ダークモード', 'settings.dark_desc': '深く落ち着いた夜間色',
       'settings.launch': '起動設定',
-      'settings.launch_engine': '起動エンジン',
-      'settings.launch_auto': '自動（直接起動を優先）',
-      'settings.launch_direct': '直接起動（python launch.py）',
-      'settings.launch_bat': 'Bat 方式（webui.bat）',
       'settings.launch_mode': '起動モード',
       'settings.launch_sdp': 'SDP（互換性優先、加速無効）',
       'settings.launch_sage': 'Sage（SageAttention 加速有効）',
       'settings.launch_standard': '標準',
-      'settings.launch_hint_auto': '自動：python launch.py を優先し、Python が見つからない場合は bat にフォールバック',
-      'settings.launch_hint_direct': 'python launch.py で直接起動',
-      'settings.launch_hint_bat': 'webui.bat で起動',
-      'settings.launch_fallback': 'どちらの方法も失敗した場合、起動用のbatファイルをコピーして"webui.bat"にリネームしてもう一度お試しください。',
+      'settings.launch_auto_hint': '起動方式は自動判定。起動直後に終了した場合は、別の方式で再試行します',
       'settings.notification': '通知',
       'settings.notif_toggle': '画像生成完了時に音を鳴らす',
       'settings.notif_custom': 'カスタム音',
@@ -1838,6 +1978,8 @@
       'settings.proxy_hint_off': 'オフ — NEO は直接接続',
       'settings.proxy_testing': '⏳ {0} への接続をテスト中…',
       'settings.proxy_test_btn': 'テスト中…',
+      'settings.proxy_testing_google': 'Google への接続をテスト',
+      'settings.proxy_testing_hf': 'Hugging Face への接続をテスト',
       'settings.proxy_success': '<span style="color:var(--console-green);">✅ {0} に接続できました</span>',
       'settings.proxy_fail': '<span style="color:var(--console-error);">❌ {0} に接続できません</span>',
       'settings.proxy_err': '<span style="color:var(--console-error);">❌ テストエラー：{0}</span>',
@@ -1881,6 +2023,7 @@
       'sysinfo.python': 'Python', 'sysinfo.forge': 'Forge NEO',
       'sysinfo.no_data': 'システム情報を取得できません',
       'sysinfo.err': '取得エラー：{0}',
+      'sysinfo.loading': 'システム情報を読み込み中…',
       'confirm.cancel': 'キャンセル', 'confirm.ok': '確認', 'confirm.alert_ok': 'OK',
       'confirm.stop_neo': 'Forge NEO を停止しますか？',
       'confirm.refresh_all': 'すべてのギャラリーフォルダを更新しますか？\nすべての PNG を再スキャンし、サムネイルを再生成します。',
@@ -1893,7 +2036,9 @@
       'confirm.remove_folder': 'このギャラリーフォルダを削除しますか？\n「{0}」\n元のファイルは削除されません。',
       'confirm.upgrade': 'このバージョンに切り替えますか？',
       'confirm.same_ver': '同じバージョンには切り替えられません！',
+      'confirm.local_unknown': '（ローカルバージョンを取得できなかったため、同じバージョンかどうかは確認していません）',
       'confirm.upgrade_fail': 'アップグレード失敗：{0}',
+      'confirm.upgrade_crash': 'アップグレードエラー：{0}',
       'win.minimize': '最小化', 'win.maximize': '最大化', 'win.restore': '復元', 'win.close': '閉じる',
       'copy.btn': 'コピー',
       'sound.current': '現在の音：{0}',
@@ -1944,17 +2089,17 @@
       el.alt = t(key);
     });
     // 更新状态文本和启动按钮
-    if (typeof isRunning !== 'undefined') {
+    if (typeof neoState !== 'undefined') {
       const txt = document.getElementById('statusText');
-      const dot = document.getElementById('statusDot');
       const launch = document.getElementById('btnLaunch');
-      if (txt) txt.textContent = isRunning ? t('status.running') : t('status.stopped');
-      if (launch) {
-        launch.querySelector('.fn').textContent = isRunning ? t('status.run_btn') : t('status.launch_btn');
-      }
+      if (txt) txt.textContent = t(neoWords().status);
+      if (launch) launch.querySelector('.fn').textContent = t(neoWords().button);
+      updateConsoleNeoButton();
     }
+    // 升级按钮的文字也归 JS 管。这一句必须排在 data-i18n 那轮**之后**——
+    // 升级中按钮显示的是「⏳ 升级」，上面那轮会把它改回「升级」
+    updateUpgradeButton();
     updateLaunchHint();
-    updateLaunchMethodHint();
     updateNotificationHint();
     updateProxyHint();
     // 更新关于卡片与语言提示
@@ -1966,7 +2111,23 @@
   let _activeLang = 'zh-CN';
 
   // ═══ 状态 ═══
-  let isRunning = false;
+  // NEO 的三态。以前只有「在跑 / 没在跑」，于是「正在终止」被算进了「没在跑」——
+  // 界面会在 NEO 还在关闭的时候显示「启动 NEO」，点下去还会被 C# 那边默默吃掉
+  let neoState = 'idle';
+
+  const neoBusy    = () => neoState !== 'idle';      // 还在（要么在跑，要么在关）
+  const neoRunning = () => neoState === 'running';   // 真的在跑
+
+  /// 三态各自要说的话。放一张表里，省得五六个调用点各写一遍嵌套三元——
+  /// 那种写法人一多就没人看得懂了
+  const NEO_STATE_WORDS = {
+    idle:     { status: 'status.stopped',  button: 'status.launch_btn',  console: 'console.launch_btn',  home: 'home.idle_mode' },
+    running:  { status: 'status.running',  button: 'status.run_btn',     console: 'console.stop_btn',    home: 'home.running_mode' },
+    stopping: { status: 'status.stopping', button: 'status.stopping',    console: 'console.stopping_btn', home: 'home.stopping_mode' },
+  };
+
+  const neoWords = () => NEO_STATE_WORDS[neoState] || NEO_STATE_WORDS.idle;
+
   let settings = {};
 
   // ═══ Tab 切换 ═══
@@ -2089,23 +2250,23 @@
     var originalText = btn ? btn.textContent : '';
     resultEl.innerHTML = t('settings.proxy_testing', label);
     if (btn) { btn.disabled = true; btn.textContent = t('settings.proxy_test_btn'); }
-    // 先更新 UI，再执行同步调用（否则 WebView2 sync 会阻塞渲染）
-    setTimeout(function() {
-      try {
-        var json = chrome.webview.hostObjects.sync.forgeSide.TestProxyConnection(target);
-        var data = JSON.parse(json);
-        if (data.success) {
-          resultEl.innerHTML = t('settings.proxy_success', label)
-            + (data.ms ? ' <span style="color:var(--text-muted);font-size:11px;">(' + data.ms + 'ms)</span>' : '');
-        } else {
-          resultEl.innerHTML = t('settings.proxy_fail', label)
-            + (data.error ? ' <span style="color:var(--text-muted);font-size:11px;">— ' + escHtml(data.error) + '</span>' : '');
-        }
-      } catch(e) {
-        resultEl.innerHTML = t('settings.proxy_err', escHtml(e.message));
+
+    // 以前这里得 setTimeout 50ms 才敢发同步调用，好让界面先画出来；
+    // 现在走长任务通道，本来就是异步的，不用再跟渲染抢那 50ms 了
+    forgeSideLongTask('testProxy', target).then(function(json) {
+      var data = JSON.parse(json);
+      if (data.success) {
+        resultEl.innerHTML = t('settings.proxy_success', label)
+          + (data.ms ? ' <span style="color:var(--text-muted);font-size:11px;">(' + data.ms + 'ms)</span>' : '');
+      } else {
+        resultEl.innerHTML = t('settings.proxy_fail', label)
+          + (data.error ? ' <span style="color:var(--text-muted);font-size:11px;">— ' + escHtml(data.error) + '</span>' : '');
       }
+    }).catch(function(e) {
+      resultEl.innerHTML = t('settings.proxy_err', escHtml(e.message));
+    }).finally(function() {
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
-    }, 50);
+    });
   }
 
   // ═══ 启动模式联动 ═══
@@ -2116,26 +2277,11 @@
     updateLaunchHint();
   }
 
-  function onLaunchMethodChange() {
-    const method = document.getElementById('launchMethod').value;
-    bridge('saveSetting', JSON.stringify({ key: 'launchMethod', value: method }));
-    settings.launchMethod = method;
-    updateLaunchMethodHint();
-  }
-
-  function updateLaunchMethodHint() {
-    const raw = settings.launchMethod || 'auto';
-    const hint = document.getElementById('launchMethodHint');
-    if (raw === 'auto') hint.textContent = t('settings.launch_hint_auto');
-    else if (raw === 'direct') hint.textContent = t('settings.launch_hint_direct');
-    else if (raw === 'bat') hint.textContent = t('settings.launch_hint_bat');
-  }
-
   function updateLaunchHint() {
     const raw = settings.launchMode || 'sage';
     const mode = raw.toUpperCase();
     const hint = document.getElementById('launchModeHint');
-    hint.textContent = isRunning ? t('home.running_mode', mode) : t('home.idle_mode', mode);
+    hint.textContent = t(neoWords().home, mode);
   }
 
   // ═══ 语言切换 ═══
@@ -2364,7 +2510,16 @@
             openBgEditor();
           }
         }
-      } catch(e) { forgeSide_onConsole('[ForgeSide] Poll error: ' + e.message, 'error'); }
+        _lastPollError = '';
+      } catch(e) {
+        // 这个轮询每 250ms 跑一次。以前是每次出错都往控制台灌一行，
+        // 一个卡住的轮询自己就能把控制台刷到几万行——
+        // 同一个错误只报一次，恢复了（上面的 _lastPollError = ''）才允许再报
+        if (e.message !== _lastPollError) {
+          _lastPollError = e.message;
+          forgeSide_onConsole([{ text: '[ForgeSide] Poll error: ' + e.message, type: 'error' }]);
+        }
+      }
     }, 250);
   })();
 
@@ -2635,11 +2790,13 @@
   const SZ_KEY = { small: 'small', medium: 'medium', large: 'large' };
   const GAP = 4;
   const PAD = 8;
-  const OVERSCAN = 3; // 视口外额外渲染的行数缓冲
+  const OVERSCAN = 3;           // 视口外额外渲染的行数缓冲
+  const THUMB_CACHE_MAX = 200;  // 内存里最多留多少张缩略图；medium 一张约 70KB，200 张十几 MB
 
-  var _galleryRows = [];     // [{ y, h, images: [...] }]
-  var _galleryRenderId = 0;
-  var _galleryLoadMore = 0;  // 已渲染到第几行
+  var _galleryRows = [];        // [{ y, h, images: [...] }]
+  var _galleryRowEls = {};      // 行号 → 已经建好的 DOM，滚回来直接复用
+  var _selectedThumbEl = null;  // 当前高亮的那张，点击时只动它一个
+  var _thumbSrcCache = new Map();  // "尺寸|路径" → data URI
 
   function applyGallerySize(size) {
     var sel = document.getElementById('gallerySize');
@@ -2659,7 +2816,6 @@
           var data = JSON.parse(json);
           galleryImages = data.images || [];
           rebuildRows();
-          renderVisible();
         } catch(e) {}
       } else {
         loadGallery();
@@ -2678,7 +2834,7 @@
     var size = document.getElementById('gallerySize').value;
     settings.thumbnailSize = size;
     bridge('saveSetting', JSON.stringify({ key: 'thumbnailSize', value: size }));
-    if (galleryImages.length > 0) { rebuildRows(); renderVisible(); }
+    if (galleryImages.length > 0) rebuildRows();
   }
 
   function loadGallery() {
@@ -2687,15 +2843,14 @@
       var data = JSON.parse(json);
       galleryImages = data.images || [];
       rebuildRows();
-      renderVisible();
     } catch(e) {}
   }
 
   function forgeSide_onThumbnailsReady() {
-    if (activeTab === 2 && galleryImages.length > 0) {
-      rebuildRows();
-      renderVisible();
-    }
+    // 缩略图是后台慢慢生成的，先前渲染时拿到的多半是原图兜底地址。
+    // 把内存缓存丢掉，让已经建好的行重新取一次真的缩略图
+    _thumbSrcCache.clear();
+    if (activeTab === 2 && galleryImages.length > 0) rebuildRows();
   }
 
   // ═══ 预计算行分布 + 两端对齐缩放（纯算术，不碰 DOM）═══
@@ -2733,23 +2888,26 @@
       y += actualH + GAP;
     }
 
-    _galleryLoadMore = 0;
-    _galleryRenderId++;
+    clearGalleryRows();
     updateSpacer();
     renderVisible();
   }
 
+  /// 撑开滚动高度。取每行真实的高度——行是缩放过的，跟基准行高不是一回事
   function updateSpacer() {
     var inner = document.getElementById('galleryGridInner');
-    if (inner) {
-      var totalH = _galleryRows.length > 0
-        ? _galleryRows[_galleryRows.length - 1].y + ROW_H[settings.thumbnailSize || 'medium'] || 200
-        : 0;
-      inner.style.minHeight = (totalH + PAD * 2) + 'px';
-    }
+    if (!inner) return;
+    var lastRow = _galleryRows[_galleryRows.length - 1];
+    var totalH = lastRow ? lastRow.y + lastRow.h : 0;
+    inner.style.minHeight = (totalH + PAD * 2) + 'px';
   }
 
   // ═══ 渲染可见行（虚拟滚动核心）═══
+  //
+  // 这里以前是"每滚一下就整体重建"：删掉全部行、拼一大段 HTML 重插一遍，
+  // 而且每张图的缩略图都要同步跨进程取一次——图库一多就卡得没法看。
+  // 现在只做两件事：收掉滚出视野的行、补上进入视野的行，
+  // 缩略图取过一次就记在 _thumbSrcCache 里。
   function renderVisible() {
     var grid = document.getElementById('galleryGrid');
     var inner = document.getElementById('galleryGridInner');
@@ -2757,64 +2915,139 @@
     if (!grid || !inner) return;
 
     if (_galleryRows.length === 0) {
-      inner.innerHTML = '';
-      inner.appendChild(empty);
+      clearGalleryRows();
+      if (empty.parentNode !== inner) inner.appendChild(empty);
       empty.style.display = '';
       return;
     }
     empty.style.display = 'none';
 
+    var range = visibleRowWindow(grid);
+    trimRowsOutside(range);
+    for (var r = range.first; r <= range.last; r++) buildRowIfNeeded(r);
+  }
+
+  /// 视口要渲染的行区间（上下各留 OVERSCAN 行缓冲）。
+  /// 行按 y 递增，所以起点用二分找，再往后走到越过下界——不随图库变大而变慢
+  function visibleRowWindow(grid) {
     var viewTop = grid.scrollTop;
     var viewH = grid.clientHeight;
-    var firstVis = -1, lastVis = -1;
-    for (var r = 0; r < _galleryRows.length; r++) {
-      var rowTop = _galleryRows[r].y;
-      var rowBot = rowTop + _galleryRows[r].h;
-      if (rowBot >= viewTop - viewH * OVERSCAN && rowTop <= viewTop + viewH * (1 + OVERSCAN)) {
-        if (firstVis < 0) firstVis = r;
-        lastVis = r;
-      }
-    }
-    if (firstVis < 0) { firstVis = 0; lastVis = Math.min(OVERSCAN * 2, _galleryRows.length - 1); }
 
-    // 扩展渲染范围：加载更多行（无限滚动方向）
-    if (lastVis >= _galleryLoadMore - 2) {
-      _galleryLoadMore = Math.min(_galleryLoadMore + 20, _galleryRows.length);
-    }
-    var renderEnd = Math.max(lastVis, _galleryLoadMore - 1);
+    var first = firstRowReaching(viewTop - viewH * OVERSCAN);
+    if (first >= _galleryRows.length) first = _galleryRows.length - 1;
 
-    var renderId = ++_galleryRenderId;
+    var bottomEdge = viewTop + viewH * (1 + OVERSCAN);
+    var last = first;
+    while (last + 1 < _galleryRows.length && _galleryRows[last + 1].y <= bottomEdge) last++;
+    return { first: first, last: last };
+  }
+
+  /// 第一个"底边够到了上面这条线"的行号；一个都没够到就返回行数
+  function firstRowReaching(lineY) {
+    var low = 0, high = _galleryRows.length - 1, found = _galleryRows.length;
+    while (low <= high) {
+      var mid = (low + high) >> 1;
+      if (_galleryRows[mid].y + _galleryRows[mid].h >= lineY) { found = mid; high = mid - 1; }
+      else low = mid + 1;
+    }
+    return found;
+  }
+
+  /// 收掉视野外的行，别让 DOM 一直长下去
+  function trimRowsOutside(range) {
+    var inner = document.getElementById('galleryGridInner');
+    for (var key in _galleryRowEls) {
+      var rowIndex = +key;
+      if (rowIndex >= range.first && rowIndex <= range.last) continue;
+      if (_galleryRowEls[rowIndex].parentNode === inner) inner.removeChild(_galleryRowEls[rowIndex]);
+      delete _galleryRowEls[rowIndex];
+    }
+  }
+
+  /// 补一行还没建过的。行是绝对定位的，插在谁前面都不影响显示，所以直接 append
+  function buildRowIfNeeded(rowIndex) {
+    if (_galleryRowEls[rowIndex]) return;
+    var inner = document.getElementById('galleryGridInner');
+    if (!inner) return;
+
+    var row = _galleryRows[rowIndex];
+    var el = document.createElement('div');
+    el.className = 'gallery-row';
+    el.style.top = row.y + 'px';
+    el.style.height = row.h + 'px';
+    for (var k = 0; k < row.images.length; k++) el.appendChild(buildThumbEl(row.h, row.images[k]));
+    inner.appendChild(el);
+    _galleryRowEls[rowIndex] = el;
+  }
+
+  /// 一张缩略图。高度跟行高对齐，宽度按原图比例
+  function buildThumbEl(rowHeight, img) {
+    var selected = img.path === gallerySelectedPath;
+    var el = document.createElement('div');
+    el.className = 'gallery-thumb' + (selected ? ' selected' : '');
+    el.setAttribute('data-path', img.path);
+    el.setAttribute('draggable', 'true');
+    el.setAttribute('title', img.name);
+    el.style.width = Math.round(rowHeight * (img.width / img.height)) + 'px';
+    el.style.height = rowHeight + 'px';
+    el.addEventListener('click', function() { onGalleryClick(el); });
+
+    el.appendChild(buildThumbPicture(img));
+
+    var name = document.createElement('div');
+    name.className = 'gallery-thumb-name';
+    name.textContent = img.name;
+    el.appendChild(name);
+
+    if (selected) _selectedThumbEl = el;   // 行是重建出来的，高亮要跟着接上
+    return el;
+  }
+
+  function buildThumbPicture(img) {
+    var picture = document.createElement('img');
+    picture.alt = '';
+    picture.loading = 'lazy';
+    picture.src = thumbSrc(img.path);
+    return picture;
+  }
+
+  /// 缩略图地址。取过一次就记住——GetThumbBase64 是同步跨进程调用，
+  /// 每滚一下都重新问一遍，再快的机器也扛不住。
+  /// 缓存满了先扔最久没用的那个（Map 按插入顺序排，队首就是最旧的）
+  function thumbSrc(path) {
+    var key = (SZ_KEY[settings.thumbnailSize] || 'medium') + '|' + path;
+    var cached = _thumbSrcCache.get(key);
+    if (cached !== undefined) {
+      _thumbSrcCache.delete(key);
+      _thumbSrcCache.set(key, cached);
+      return cached;
+    }
+
+    var src = fetchThumbSrc(path);
+    if (_thumbSrcCache.size >= THUMB_CACHE_MAX) _thumbSrcCache.delete(_thumbSrcCache.keys().next().value);
+    _thumbSrcCache.set(key, src);
+    return src;
+  }
+
+  /// 真的去要一次；要不到就退回原图，至少让用户看见东西
+  function fetchThumbSrc(path) {
     var sizeKey = SZ_KEY[settings.thumbnailSize] || 'medium';
+    try {
+      var src = chrome.webview.hostObjects.sync.forgeSide.GetThumbBase64(path, sizeKey);
+      if (src) return src;
+    } catch(e) {}
+    return 'file:///' + encodeURI(path.replace(/\\/g, '/')).replace(/#/g, '%23');
+  }
 
-    // 构建 HTML 片段（各行使用缩放后的实际高度）
-    var html = '';
-    for (var r = firstVis; r <= renderEnd && r < _galleryRows.length; r++) {
-      var row = _galleryRows[r];
-      html += '<div class="gallery-row" style="top:' + row.y + 'px; height:' + row.h + 'px;">';
-      for (var k = 0; k < row.images.length; k++) {
-        var img = row.images[k];
-        var imgW = Math.round(row.h * (img.width / img.height));
-        var srcUrl = '';
-        try { srcUrl = chrome.webview.hostObjects.sync.forgeSide.GetThumbBase64(img.path, sizeKey); } catch(e) {}
-        if (!srcUrl) srcUrl = 'file:///' + encodeURI(img.path.replace(/\\/g, '/')).replace(/#/g, '%23');
-        var sel = img.path === gallerySelectedPath ? ' selected' : '';
-        html += '<div class="gallery-thumb' + sel + '" data-path="' + escAttr(img.path) + '" draggable="true"'
-          + ' onclick="onGalleryClick(this)" title="' + escAttr(img.name) + '"'
-          + ' style="width:' + imgW + 'px; height:' + row.h + 'px;">'
-          + '<img src="' + srcUrl + '" loading="lazy" alt="" />'
-          + '<div class="gallery-thumb-name">' + escHtml(img.name) + '</div>'
-          + '</div>';
-      }
-      html += '</div>';
+  /// 把所有行 DOM 和登记表丢掉（重算布局 / 列表变空时用）
+  function clearGalleryRows() {
+    var inner = document.getElementById('galleryGridInner');
+    if (inner) {
+      var rows = inner.querySelectorAll('.gallery-row');
+      for (var i = 0; i < rows.length; i++) rows[i].remove();
     }
-
-    if (inner.getAttribute('data-render') !== String(renderId)) {
-      inner.setAttribute('data-render', String(renderId));
-      // 移除旧行，插入新行
-      var oldRows = inner.querySelectorAll('.gallery-row');
-      for (var o = 0; o < oldRows.length; o++) oldRows[o].remove();
-      inner.insertAdjacentHTML('beforeend', html);
-    }
+    _galleryRowEls = {};
+    _selectedThumbEl = null;
   }
 
   // 滚动时刷新可见区
@@ -2875,21 +3108,26 @@
   function renderGalleryGrid(images) {
     galleryImages = images;
     rebuildRows();
-    renderVisible();
   }
 
   function onGalleryClick(el) {
     var path = el.getAttribute('data-path');
     gallerySelectedPath = path;
-    // 高亮选中
-    document.querySelectorAll('.gallery-thumb').forEach(function(t) { t.classList.remove('selected'); });
-    el.classList.add('selected');
+    markSelectedThumb(el);
     // 显示参数
     try {
       var json = chrome.webview.hostObjects.sync.forgeSide.GetGalleryMeta(path);
       var data = JSON.parse(json);
       showGalleryParams(data);
     } catch(e) { console.error('Gallery meta error:', e); }
+  }
+
+  /// 只摘掉上一个高亮、点亮这一个。以前是全表扫一遍 .gallery-thumb，
+  /// 现在行是随滚动增删的，扫全表既慢又扫不全
+  function markSelectedThumb(el) {
+    if (_selectedThumbEl && _selectedThumbEl !== el) _selectedThumbEl.classList.remove('selected');
+    if (el) el.classList.add('selected');
+    _selectedThumbEl = el;
   }
 
   function showGalleryParams(data) {
@@ -2999,6 +3237,7 @@
     showConfirm(t('confirm.refresh_folder', folder), function() {
       try { chrome.webview.hostObjects.sync.forgeSide.RefreshGalleryFolder(folder); }
       catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
+      dropThumbSrcCache();
       showConfirm(t('confirm.refresh_folder_done'), null);
     });
   }
@@ -3007,8 +3246,14 @@
     showConfirm(t('confirm.clear_cache'), function() {
       try { chrome.webview.hostObjects.sync.forgeSide.CleanThumbOrphans(); }
       catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
+      dropThumbSrcCache();
       showConfirm(t('confirm.clear_done'), null);
     });
+  }
+
+  /// 磁盘上的缩略图可能变了，内存里那份也一起丢掉
+  function dropThumbSrcCache() {
+    _thumbSrcCache.clear();
   }
 
   function removeGalleryFolder(path) {
@@ -3020,13 +3265,21 @@
   function showSystemInfo() {
     var overlay = document.getElementById('sysInfoOverlay');
     var content = document.getElementById('sysInfoContent');
-    try {
-      var json = chrome.webview.hostObjects.sync.forgeSide.GetSystemInfo();
+
+    // 先把浮层亮出来。读系统信息要跑八个 WMI 查询，等它回来才显示的话，
+    // 用户点完按钮会觉得"没反应"，然后再点一次
+    content.innerHTML = '<div style="color:var(--text-muted);">' + t('sysinfo.loading') + '</div>';
+    overlay.style.display = 'flex';
+
+    forgeSideLongTask('systemInfo').then(function(json) {
       var info = JSON.parse(json);
       // 两列布局：左列名称右对齐，右列值左对齐
+      // forge 这一项以前漏在表里了——C# 一直在算、四份字典也都有这个键，
+      // 只有这里没列出来，所以那一行从来没显示过
       var labels = {
         os: t('sysinfo.os'), cpu: t('sysinfo.cpu'), gpu: t('sysinfo.gpu'), ram: t('sysinfo.ram'),
-        disk: t('sysinfo.disk'), screen: t('sysinfo.screen'), python: t('sysinfo.python')
+        disk: t('sysinfo.disk'), screen: t('sysinfo.screen'), python: t('sysinfo.python'),
+        forge: t('sysinfo.forge')
       };
       var html = '<table style="width:100%;border-collapse:collapse;">';
       for (var key in labels) {
@@ -3038,14 +3291,12 @@
       }
       html += '</table>';
       content.innerHTML = html || '<div style="color:var(--text-muted);">' + t('sysinfo.no_data') + '</div>';
-      overlay.style.display = 'flex';
-    } catch(e) {
+    }).catch(function(e) {
       content.innerHTML = '<div style="color:var(--text-muted);">' + t('sysinfo.err', escHtml(e.message)) + '</div>';
-      overlay.style.display = 'flex';
-    }
+    });
   }
 
-  function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   // ═══ 初始化: 从 C# 加载设置 ═══
   function init() {
@@ -3077,8 +3328,6 @@
       forgeSide_onSoundPicked(settings.notificationSoundPath);
     }
     document.getElementById('launchMode').value = settings.launchMode || 'sage';
-    document.getElementById('launchMethod').value = settings.launchMethod || 'auto';
-    updateLaunchMethodHint();
     document.getElementById('fileManager').value = settings.fileManager || 'explorer';
     document.getElementById('customFileManagerPath').value = settings.customFileManagerPath || '';
     updateFmPathRow();
@@ -3190,26 +3439,76 @@
   var GITHUB_REPO = 'Haoming02/sd-webui-forge-classic';
   var vCachedReleases = null;
   var vLocalVersionStr = null;
+  var vLocalVersionTask = null;   // 正在取的那一次；取过就一直留着（失败也算取过）
+  var vConfirmOpening = false;    // 升级确认框正在等版本，别开第二个
+
+  // 「已经是同一个版本」那道判断最多等这么久。上游那八条 WMI 查询没有超时，
+  // 真卡住的话无限等会让"点升级永远没反应"——那比少拦一次糟糕得多
+  var LOCAL_VERSION_WAIT_MS = 5000;
 
   // 获取本地 Forge NEO 版本（从系统信息中提取，带缓存）
-  function getLocalVersion(forceRefresh) {
-    if (vLocalVersionStr && vLocalVersionStr !== '未知' && !forceRefresh) return vLocalVersionStr;
-    try {
-      var json = chrome.webview.hostObjects.sync.forgeSide.GetSystemInfo();
-      var info = JSON.parse(json);
-      var forgeInfo = (info.forge || '').trim();
-      if (forgeInfo && forgeInfo !== '未检测到') {
-        vLocalVersionStr = forgeInfo;
-        return forgeInfo;
-      }
-    } catch(e) {}
-    vLocalVersionStr = '未知';
+  // 不能同步等：GetSystemInfo 要跑八个 WMI 查询，切到版本页那一下就会卡住界面。
+  // 所以改成"先用手上有的、后台去取、取回来再刷新显示"。
+  // 注意它一律立刻返回——要等真值就用 waitForLocalVersion()
+  function getLocalVersion() {
+    if (vLocalVersionStr) return vLocalVersionStr;
+
+    fetchLocalVersionOnce();
     return '未知';
+  }
+
+  // 后台取一次本地版本。取过就不再重复取，失败也算取过——
+  // 否则失败的时候会被调用点反复重试，八次 WMI 一遍遍地跑
+  function fetchLocalVersionOnce() {
+    if (vLocalVersionTask) return vLocalVersionTask;
+
+    var task = forgeSideLongTask('systemInfo')
+      .then(function(json) {
+        var info = JSON.parse(json);
+        // 用 forgeVersion（干净的版本号），不用 info.forge——
+        // 后者是给人看的文案，版本没识别出来时放的是路径或者"未检测到"，
+        // 拿它当判断依据的话，换个界面语言就认不出来了
+        return (info.forgeVersion || '').trim() || '未知';
+      })
+      .catch(function() { return '未知'; })
+      .then(function(version) {
+        // 落笔之前先确认自己还是"当前那一次"：刷新会把 vLocalVersionTask 换掉，
+        // 迟到的旧结果不能盖掉新的那个
+        if (vLocalVersionTask !== task) return vLocalVersionStr;
+
+        vLocalVersionStr = version;
+        updateLocalVersionDisplay();
+        if (vCachedReleases) updateVersionCards();
+        return vLocalVersionStr;
+      });
+
+    vLocalVersionTask = task;
+    return task;
+  }
+
+  // 等到本地版本真读出来为止，最多等 timeoutMs 毫秒；超时给 null。
+  // 已经拿在手上的立刻兑现，不会白白等一轮
+  function waitForLocalVersion(timeoutMs) {
+    if (vLocalVersionStr) return Promise.resolve(vLocalVersionStr);
+
+    return Promise.race([
+      fetchLocalVersionOnce(),
+      new Promise(function(resolve) {
+        setTimeout(function() { resolve(null); }, timeoutMs);
+      }),
+    ]);
+  }
+
+  // 小工具：升级提示那行字只有一个出口
+  function setVersionHint(text) {
+    var hint = document.getElementById('vUpgradeHint');
+    if (hint) hint.textContent = text;
   }
 
   // 强制刷新本地版本（用户点击刷新时）
   function refreshLocalVersion() {
     vLocalVersionStr = null;
+    vLocalVersionTask = null;
     updateLocalVersionDisplay();
     if (vCachedReleases) updateVersionCards();
   }
@@ -3370,7 +3669,7 @@
         + '<span class="ri-badges">' + badges + '</span>'
         + (body ? '<button class="ri-toggle" onclick="toggleReleaseBody(' + i + ')" id="riToggle-' + i + '">' + t('version.expand') + '</button>' : '')
         + '<label class="ri-select" data-i18n-title="version.select_title" title="选择此版本进行升级">'
-        + '<input type="radio" name="v-upgrade" value="' + escAttr(tag) + '" onclick="onVersionClick(this, \'' + escAttr(tag) + '\')"' + (isLocal ? ' checked' : '') + '>'
+        + '<input type="radio" name="v-upgrade" value="' + escAttr(tag) + '" onclick="onVersionClick(this)"' + (isLocal ? ' checked' : '') + '>'
         + '</label>'
         + '</div>'
         + (body ? '<div class="ri-body" id="' + bodyId + '">' + escHtml(body) + '</div>' : '')
@@ -3382,11 +3681,13 @@
     var checkedRadio = document.querySelector('input[name="v-upgrade"]:checked');
     if (checkedRadio) {
       vSelectedTag = checkedRadio.value;
-      var btn = document.getElementById('vUpgradeBtn');
       var hint = document.getElementById('vUpgradeHint');
-      if (btn) { btn.classList.add('active'); btn.disabled = false; }
       if (hint) hint.textContent = t('version.selected', vSelectedTag);
     }
+    // 这里以前是直接 btn.classList.add('active'); btn.disabled = false;——
+    // 而刷新版本列表恰好是升级中完全可能发生的事，这一下就把按钮重新点亮了。
+    // 交给 updateUpgradeButton 统一决定：它还知道 vUpgradeBusy 这回事
+    updateUpgradeButton();
   }
 
   // 格式化版本号显示：去掉 neo- 这类前缀，只显示数字版本
@@ -3408,49 +3709,105 @@
   // ═══ 版本升级 ═══
   var vSelectedTag = null;
 
+  var vUpgradeBusy = false;
+
+  // 这颗按钮里是「svg 图标 + 文字」两半。升级中只想换文字那一半，
+  // 而以前这里写的是 btn.textContent = …——那是**整块替换子节点**，图标一起被抹掉；
+  // 而且升完级的三条收尾路径也是 textContent，谁都没把图标放回来，要重启才恢复。
+  // 现在文字、图标、「能不能点」全归这一个地方管。
+  //
+  // 「能不能点」为什么也要收进来：它原本散在三处各写各的
+  // （选版本时加 .active、取消时去掉、刷新列表时又加回来），
+  // 只要有一处忘了看 vUpgradeBusy，升级中就能把按钮重新点亮——
+  // 那就能对同一个仓库跑第二条 git reset。收成一个判断就再没有漏的机会了
+  function updateUpgradeButton() {
+    var label = document.getElementById('vUpgradeBtnLabel');
+    var btn = document.getElementById('vUpgradeBtn');
+    if (label) label.textContent = vUpgradeBusy ? '⏳ ' + t('version.upgrade') : t('version.upgrade');
+    if (!btn) return;
+
+    // 选了版本 且 没在升级，才准点
+    btn.disabled = vUpgradeBusy;
+    btn.classList.toggle('active', !!vSelectedTag && !vUpgradeBusy);
+  }
+
   // 选择/取消选择版本（点击已选中的可取消）
-  function onVersionClick(el, tag) {
+  function onVersionClick(el) {
+    // 升级中连选择都不许改。勾选状态是浏览器自己翻的，这里把它翻回去
+    if (vUpgradeBusy) { el.checked = !el.checked; return; }
+
+    // tag 直接从 el.value 取——以前是拼进 onclick 字符串里的，
+    // 而 tag 来自 GitHub 的 tag_name，一个单引号就能逃出去执行任意脚本
+    var tag = el.value;
+
     if (el.checked && vSelectedTag === tag) {
       // 再次点击已选中的 → 取消勾选
       el.checked = false;
       vSelectedTag = null;
-      var btn = document.getElementById('vUpgradeBtn');
-      var hint = document.getElementById('vUpgradeHint');
-      if (btn) { btn.classList.remove('active'); btn.disabled = false; }
-      if (hint) hint.textContent = t('version.select_hint');
+      setVersionHint(t('version.select_hint'));
     } else {
       vSelectedTag = tag;
-      var btn = document.getElementById('vUpgradeBtn');
-      var hint = document.getElementById('vUpgradeHint');
-      if (btn) { btn.classList.add('active'); btn.disabled = false; }
-      if (hint) hint.textContent = '已选择：' + tag;
+      // 这里以前是手写的 '已选择：' + tag——同样的意思、同样的词条就在隔壁分支里（上面那处用了 t()），
+      // 抄一遍的结果是英日繁用户看到的还是中文
+      setVersionHint(t('version.selected', tag));
     }
+
+    updateUpgradeButton();
   }
 
   // 显示升级确认弹窗
   function showUpgradeConfirm() {
-    if (!vSelectedTag) return;
-    var localVer = getLocalVersion();
-    var cleanLocal = cleanVersionDisplay(localVer);
-    // 比较数字版本号，相同则禁止切换
-    var verNumRegex = /(\d[\d.]*)/;
-    var tagNum = (vSelectedTag.match(verNumRegex) || [])[1];
-    var localNum = (localVer.match(verNumRegex) || [])[1];
-    if (tagNum && localNum && tagNum === localNum) {
-      showAlert(t('confirm.same_ver'));
-      return;
+    if (!vSelectedTag || vConfirmOpening) return;
+
+    // 本地版本还在后台取的话，这里等它一次再判断。
+    // 以前 getLocalVersion() 是同步的，拿到的一定是真版本号；改成后台取之后，
+    // 第一次进版本页它还在路上，返回的是 '未知'——而 '未知' 里没有数字，
+    // 下面那条"已经是同一个版本就别升了"就静默失效了：拦不住，还不吭声。
+    // 宁可等一下，也不能拿一个问不出数字的版本去比
+    var waiting = !vLocalVersionStr;
+    if (waiting) {
+      vConfirmOpening = true;
+      setVersionHint(t('version.reading_local'));
     }
-    var msg = t('confirm.upgrade')
-      + '\n' + (cleanLocal || t('version.local_label')) + ' → ' + vSelectedTag;
-    showConfirm(msg, doUpgrade);
+
+    waitForLocalVersion(LOCAL_VERSION_WAIT_MS).then(function(localVer) {
+      vConfirmOpening = false;
+      if (waiting)
+        setVersionHint(vSelectedTag ? t('version.selected', vSelectedTag) : t('version.select_hint'));
+
+      // 等的这段时间里用户可能已经开始升级、或者把选择取消了
+      if (vUpgradeBusy || !vSelectedTag) return;
+
+      // 比较数字版本号，相同则禁止切换
+      var verNumRegex = /(\d[\d.]*)/;
+      var tagNum = (vSelectedTag.match(verNumRegex) || [])[1];
+      var localNum = ((localVer || '').match(verNumRegex) || [])[1];
+      if (tagNum && localNum && tagNum === localNum) {
+        showAlert(t('confirm.same_ver'));
+        return;
+      }
+
+      var cleanLocal = cleanVersionDisplay(localVer);
+      var msg = t('confirm.upgrade')
+        + '\n' + (cleanLocal || t('version.local_label')) + ' → ' + vSelectedTag;
+      // 版本没读出来的时候，上面那条判断这次压根没用上。以前它是悄无声息地
+      // 失效的，现在至少说一声——别让人以为"检查过了，放心升"
+      if (!localVer) msg += '\n' + t('confirm.local_unknown');
+      showConfirm(msg, doUpgrade);
+    });
   }
 
   // 执行升级
   function doUpgrade() {
+    // 这条是真正的重入闸。按钮好不好点是照 vUpgradeBusy 算出来的，
+    // 可那终究只是界面；真正保证"不会有两个升级同时在跑"的是这一行。
+    // 样式是给人看的，判断是给代码用的，两样都要有
+    if (vUpgradeBusy) return;
     if (!vSelectedTag) return;
-    var btn = document.getElementById('vUpgradeBtn');
+
     var hint = document.getElementById('vUpgradeHint');
-    if (btn) { btn.classList.remove('active'); btn.textContent = '⏳ ' + t('version.upgrade'); }
+    vUpgradeBusy = true;
+    updateUpgradeButton();   // 换成 ⏳，按钮同时失去可点
     if (hint) hint.textContent = t('version.upgrading_to', vSelectedTag);
     // 自动切换到控制台查看升级日志
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -3459,30 +3816,38 @@
     document.getElementById('tab-3').classList.add('active');
     activeTab = 3;
 
-    try {
-      var resultJson = chrome.webview.hostObjects.sync.forgeSide.UpgradeToVersion(vSelectedTag);
+    // 升级要跑 fetch + status + reset 三条 git 命令，同步等的话
+    // 上面刚设的"⏳ 升级中"根本没机会画出来，窗口先从点下去僵到命令结束。
+    // 走长任务通道，按钮状态立刻生效，控制台日志也能一条条流出来
+    forgeSideLongTask('upgrade', vSelectedTag).then(function(resultJson) {
       var result = JSON.parse(resultJson);
       if (result.success) {
         // 升级成功：重置本地版本缓存，刷新显示
         vLocalVersionStr = null;
-        if (hint) hint.textContent = '✅ 升级成功！版本已更新为 ' + vSelectedTag;
-        if (btn) { btn.textContent = '升级'; btn.classList.remove('active'); }
+        if (hint) hint.textContent = t('version.upgrade_done', vSelectedTag);
+        // 先清选择再更新按钮——按钮的 .active 是照着 vSelectedTag 算的，
+        // 顺序反了会被算成"还选着，那就能再升一次"
+        vSelectedTag = null;
+        document.querySelectorAll('input[name="v-upgrade"]').forEach(function(r) { r.checked = false; });
+        vUpgradeBusy = false;
+        updateUpgradeButton();
         // 刷新版本信息
         refreshLocalVersion();
         fetchReleases();
-        // 清除勾选
-        vSelectedTag = null;
-        document.querySelectorAll('input[name="v-upgrade"]').forEach(function(r) { r.checked = false; });
       } else {
-        if (hint) hint.textContent = '❌ ' + (result.error || '升级失败');
-        if (btn) { btn.textContent = '升级'; }
-        showConfirm('升级失败：' + (result.error || '未知错误'), null);
+        var errorText = result.error || t('version.unknown_error');
+        if (hint) hint.textContent = '❌ ' + errorText;
+        vUpgradeBusy = false;
+        updateUpgradeButton();
+        // confirm.upgrade_fail 这条词条在四本字典里一直躺着没人用——原来就是给这一行准备的
+        showConfirm(t('confirm.upgrade_fail', errorText), null);
       }
-    } catch(e) {
-      if (hint) hint.textContent = '❌ 升级出错';
-      if (btn) { btn.textContent = '升级'; }
-      showConfirm('升级出错：' + e.message, null);
-    }
+    }).catch(function(e) {
+      if (hint) hint.textContent = '❌ ' + e.message;
+      vUpgradeBusy = false;
+      updateUpgradeButton();
+      showConfirm(t('confirm.upgrade_crash', e.message), null);
+    });
   }
 
   // 更新版本信息总览卡片

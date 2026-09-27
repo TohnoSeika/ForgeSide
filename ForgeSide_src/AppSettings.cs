@@ -11,7 +11,6 @@ public class AppSettings
     public string FileManager      { get; set; } = "explorer";  // explorer | xyplorer | totalcmd | dopus | custom
     public string CustomFileManagerPath { get; set; } = "";
     public string LaunchMode       { get; set; } = "sage";      // sdp | sage | standard
-    public string LaunchMethod     { get; set; } = "auto";      // auto | direct | bat
     public string BackgroundImage  { get; set; } = "";          // 空 = 默认占位
     public int    BackgroundZoom   { get; set; } = 100;         // 缩放百分比，100 = 原始
     public float  BackgroundPosX   { get; set; } = 50;          // 水平位置百分比

@@ -46,10 +46,14 @@ public class BridgeHost
     // ── 通用消息路由 ──
     public void HandleAction(string action, string arg) => _form.Invoke(() => _form.HandleAction(action, arg));
 
+    // ── 长任务 ──
+    // 刻意不套 _form.Invoke：桥接调用本来就落在 UI 线程上，而它必须在 UI 线程上
+    // 立刻返回，把活丢给 C# 自己安排到后台。结果通过 ExecuteScriptAsync 回调送回去。
+    public void RequestLongTask(string requestId, string taskName, string arg)
+        => _form.RequestLongTask(requestId, taskName, arg);
+
     // ── 图库 ──
     public void StartFileDrag(string path) => _form.StartFileDrag(path);
-    public string UpgradeToVersion(string tagName) => _form.UpgradeToVersion(tagName);
-    public string TestProxyConnection(string target) => _form.TestProxyConnection(target);
     public string ScanGallery() => _form.ScanGallery();
     public string SearchGallery(string query) => _form.SearchGallery(query);
     public string GetGalleryMeta(string path) => _form.GetGalleryMeta(path);
@@ -58,7 +62,6 @@ public class BridgeHost
     public void PreGenerateThumbnails(string jsonPaths) => _form.Invoke(() => _form.PreGenerateThumbnails(jsonPaths));
     public void RefreshGalleryFolder(string folder) => _form.Invoke(() => _form.RefreshGalleryFolder(folder));
     public void RefreshGallery() => _form.Invoke(() => _form.RefreshGallery());
-    public string GetSystemInfo() => _form.GetSystemInfoJson();
     public string GetDefaultBg() => _form.GetDefaultBackgroundBase64();
 
     // ── 选择文件 ──
