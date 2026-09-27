@@ -155,11 +155,11 @@ Download the latest release from the [Releases](https://github.com/TohnoSeika/Fo
 
 ### V1.41
 
-- 🖼️ 全面重写图片参数读取引擎：支持 **JPEG / WebP** 格式，新增 EXIF UserComment 与 COM 标记解析
-- 🔍 改进 ComfyUI 解析：通用 fallback 扫描所有节点，支持更多字段与自定义节点
-- 📂 图库功能扩展：支持 jpg / jpeg / webp 格式的扫描、搜索与缓存
-- 🐛 修复升级功能中 `.git` 目录检测路径错误的问题
-- ⚡ 优化输出文件监控：支持监听 jpg / webp 等多格式输出
+- 🖼️ Complete rewrite of image parameter parser: **JPEG / WebP** support, EXIF UserComment & COM marker parsing
+- 🔍 Improved ComfyUI parsing: generic fallback scans all nodes, supports more fields and custom nodes
+- 📂 Gallery expanded: scan, search, and cache jpg / jpeg / webp formats
+- 🐛 Fixed `.git` directory detection path error in upgrade function
+- ⚡ Optimized output monitoring: supports jpg / webp and other multi-format output
 
 ### V1.4
 
