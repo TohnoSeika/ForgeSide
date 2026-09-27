@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
@@ -82,6 +83,64 @@ public static class PngParser
     //  PNG 解析
     // ═══════════════════════════════════════
 
+    /// <summary>
+    /// 单个 chunk 的长度上限。PNG 规范允许到 2^31-1，可真实的 AI 出图里
+    /// 最大的也就 ComfyUI 那几 MB 的 workflow 块。卡在 64MB 是为了挡住
+    /// 长度字段被写坏的文件 —— 那种文件会让解析器照着字段去要内存
+    /// </summary>
+    private const int MaxChunkLength = 64 * 1024 * 1024;
+
+    /// <summary>
+    /// 解一个 iTXt 块。结构是：
+    ///   关键字 \0 压缩标志(1字节) 压缩方法(1字节) 语言标签 \0 翻译关键字 \0 正文
+    /// 正文按压缩标志决定要不要 zlib 解压，编码一律是 UTF-8。
+    /// 语言标签和翻译关键字都不关心内容，跳过就好
+    /// </summary>
+    private static bool TryReadITxt(byte[] data, int length, out string key, out string value)
+    {
+        key = "";
+        value = "";
+
+        int keyEnd = Array.IndexOf(data, (byte)0, 0, length);
+        if (keyEnd < 0 || keyEnd + 3 > length) return false;
+
+        int pos = keyEnd + 1;
+        bool compressed = data[pos] != 0;
+        pos += 2;   // 压缩标志 + 压缩方法（目前只有 0 = zlib）
+
+        for (int skip = 0; skip < 2; skip++)
+        {
+            int end = Array.IndexOf(data, (byte)0, pos, length - pos);
+            if (end < 0) return false;
+            pos = end + 1;
+        }
+        if (pos > length) return false;
+
+        key = Encoding.UTF8.GetString(data, 0, keyEnd);
+        var body = data.AsSpan(pos, length - pos);
+
+        if (!compressed)
+        {
+            value = Encoding.UTF8.GetString(body);
+            return true;
+        }
+
+        try
+        {
+            using var input  = new MemoryStream(body.ToArray());
+            using var zlib   = new ZLibStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            zlib.CopyTo(output);
+            value = Encoding.UTF8.GetString(output.ToArray());
+            return true;
+        }
+        catch
+        {
+            // 压缩数据坏了就当这块不存在。整张图的参数不值得为它陪葬
+            return false;
+        }
+    }
+
     private static ImageParams? ParsePng(Stream stream)
     {
         var textChunks = new Dictionary<string, string>();
@@ -92,6 +151,13 @@ public static class PngParser
             var lenBuf = new byte[4];
             if (stream.Read(lenBuf, 0, 4) < 4) break;
             int length = ReadBigEndianInt32(lenBuf);
+
+            // 先确认这个长度真拿得出来，再分配。以前是读完字段直接 new byte[length]：
+            // 一个把长度改成 0x7FFFFFFF 的坏文件就能让这里试着要 2GB，而 ForgeSide
+            // 天生是和 Forge NEO 并行跑的，提交内存本来就紧。
+            // 长度字段是 int，负数是高位被置 1 的情况，一并挡掉
+            if (length < 0 || length > MaxChunkLength || length > stream.Length - stream.Position)
+                break;
 
             var typeBuf = new byte[4];
             if (stream.Read(typeBuf, 0, 4) < 4) break;
@@ -114,6 +180,16 @@ public static class PngParser
                     string key = Encoding.UTF8.GetString(data, 0, nullIdx);
                     string val = Encoding.UTF8.GetString(data, nullIdx + 1, length - nullIdx - 1);
                     textChunks[key] = val;
+                    break;
+
+                case "iTXt":
+                    // Pillow 的 add_text 碰上没法用 latin-1 编码的文本会改用 iTXt，
+                    // 而 A1111 / Forge / ComfyUI 存 PNG 走的就是它 ——
+                    // 也就是说，中文提示词的图，参数全在这个块里。
+                    // 以前这儿只认 tEXt，那些图的参数面板就永远是空的，
+                    // 看起来和「这张图没存参数」一模一样
+                    if (TryReadITxt(data, length, out var itxtKey, out var itxtVal))
+                        textChunks[itxtKey] = itxtVal;
                     break;
 
                 case "IEND":
@@ -168,8 +244,25 @@ public static class PngParser
         }
         else
         {
-            promptPart = raw.Trim();
-            rest = "";
+            // A1111 在负面提示词为空的时候，连 "Negative prompt:" 这一行都不写，
+            // 参数行就直接贴在提示词下面。以前这里把整段当提示词、rest 留空，
+            // 于是 Seed / Steps / Sampler 一个都进不了 ParseParamLine ——
+            // 参数面板上只剩一大段原文，看着跟「这张图没存参数」没两样。
+            // 桃华是拿一个漏写了负面提示词的样本撞出来的呢，撞得挺巧
+            //
+            // 前面补一个 \n 是为了让「整段就是参数行」也能命中：
+            // 那样 paramsIdx 会是 0，promptPart 自然是空的
+            int paramsIdx = FindParamLineStart("\n" + raw);
+            if (paramsIdx >= 0)
+            {
+                promptPart = raw[..paramsIdx].Trim();
+                rest       = raw[paramsIdx..].Trim();
+            }
+            else
+            {
+                promptPart = raw.Trim();
+                rest = "";
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(promptPart))

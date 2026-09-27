@@ -29,10 +29,39 @@ public class AppSettings
         try
         {
             if (File.Exists(DefaultPath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(DefaultPath)) ?? new();
+                return (JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(DefaultPath)) ?? new()).Normalized();
         }
         catch { /* 文件损坏则回退默认 */ }
         return new AppSettings();
+    }
+
+    /// <summary>
+    /// 把 JSON 里显式写成 null 的字段拉回默认值。
+    /// 上面那些 = "auto" / = new() 只管「字段根本不在文件里」的情况；
+    /// 文件里明写着 "Language": null 时反序列化会照单全收 ——
+    /// Nullable enable 只是编译期的，运行时一点防线都没有。
+    /// 而后果不是「设置丢了」这么轻：Language 是 null 的话，MainForm 构造函数里
+    /// 那句 Lang.SetLanguage 会走到 Dictionary.ContainsKey(null) 直接抛，
+    /// 那一步在所有 try 之外，用户不手动改配置文件就永远起不来
+    /// </summary>
+    private AppSettings Normalized()
+    {
+        ProxyUrl              ??= "http://127.0.0.1:7897";
+        FileManager           ??= "explorer";
+        CustomFileManagerPath ??= "";
+        LaunchMode            ??= "sage";
+        BackgroundImage       ??= "";
+        NotificationSoundPath ??= "";
+        ThumbnailSize         ??= "medium";
+        Language              ??= "auto";
+
+        // 列表里混进 null 的话，前端那个 escAttr 会当场抛，
+        // 正好落进 init() 的静默重试里，谁都看不出发生了什么
+        GalleryFolders = (GalleryFolders ?? new())
+            .Where(folder => !string.IsNullOrWhiteSpace(folder))
+            .ToList();
+
+        return this;
     }
 
     public void Save()

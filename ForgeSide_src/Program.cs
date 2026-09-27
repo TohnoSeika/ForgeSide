@@ -25,6 +25,21 @@ static class Program
         Application.ThreadException += (_, e) => ReportCrash(e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => ReportCrash(e.ExceptionObject as Exception);
 
+        // 只准开一个。
+        // 两个实例会互相盖设置——Save() 每次都把内存里整份写出去，后写的赢，
+        // 你在第一个窗口改的主题、语言、图库会被第二个窗口那份旧快照冲掉，
+        // 而且一声不响。它们还会同时抢 .thumbcache 里那个 sqlite，
+        // 而 SQLite 默认要等满 30 秒才认输——正好撞上图库读路径没有兜底的地方：
+        // 界面卡住半分钟，然后图库崩
+        using var singleInstance = new Mutex(true, @"Local\ForgeSide.SingleInstance", out bool isFirstInstance);
+        if (!isFirstInstance)
+        {
+            MessageBox.Show(
+                Lang.T("app.already_running"),
+                "ForgeSide", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         Application.Run(new MainForm());
     }
 

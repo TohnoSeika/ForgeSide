@@ -368,6 +368,20 @@ public class MainForm : Form
 
             _webView.CoreWebView2.AddHostObjectToScript("forgeSide", new BridgeHost(this));
 
+            // 关于页那个 bilibili 链接点下去，以前是在这个 WebView 里直接导航过去——
+            // 界面就没了，而且退不回来，只能关掉重开。
+            // HTML 那边给链接挂了自己的处理，但那只管得住写得规规矩矩的那几个：
+            // 以后谁再随手写一个裸 <a href="http...">，光靠那边是拦不住的。
+            // 所以在这儿再加一层：凡是离开本地页面的导航一律取消，改用系统浏览器打开。
+            // 兜底这种东西，还是放在 C# 更安心呢
+            _webView.CoreWebView2.NavigationStarting += (_, e) =>
+            {
+                if (IsLocalPage(e.Uri)) return;
+
+                e.Cancel = true;
+                OpenUrl(e.Uri);
+            };
+
             // 加载 HTML
             string htmlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "forge_side_ui.html");
             if (File.Exists(htmlPath))
@@ -429,6 +443,25 @@ public class MainForm : Form
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
         }
         catch { PushConsole(Lang.T("console.open_url_err"), "error"); }
+    }
+
+    /// <summary>
+    /// 这个地址是不是我们自己的界面页——是的话就放行导航，不是就交给系统浏览器。
+    /// about: 要放行，因为 NavigateToString 那条兜底路走的就是它，
+    /// 拦掉的话「HTML 文件不见了」的时候会连兜底页都显示不出来
+    /// </summary>
+    private static bool IsLocalPage(string uri)
+    {
+        if (string.IsNullOrEmpty(uri)) return false;
+        if (uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)) return true;
+        if (uri.StartsWith("data:",  StringComparison.OrdinalIgnoreCase)) return true;
+
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out var parsed) || !parsed.IsFile)
+            return false;
+
+        string baseDir = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+        string target  = Path.GetFullPath(parsed.LocalPath);
+        return target.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase);
     }
 
     private void HandleSetRect(string json)
@@ -560,7 +593,9 @@ public class MainForm : Form
         {
             // Start 可能已经成功、只有后面的监视器失败了——
             // 这种时候必须把进程收掉，否则界面说"没启动"而 NEO 还在后台跑
-            if (_procMgr.Stop() == ProcessManager.StopOutcome.KillFailed)
+            var outcome = _procMgr.Stop();
+
+            if (outcome == ProcessManager.StopOutcome.KillFailed)
             {
                 // 杀不掉就不能假装它没了。留在「运行中」，终止按钮才点得动，
                 // 关窗和版本升级那边也才拦得住——退回 Idle 的话 NEO 就成了
@@ -570,8 +605,23 @@ public class MainForm : Form
                 return;
             }
 
-            EnterNeoState(NeoState.Idle);
             PushConsole(Lang.T("console.launch_fail", ex.Message), "error");
+
+            // Stop() 有三种结果，不是两种。Terminating 只是「终止请求发出去了」，
+            // 进程还没退。以前这里一律回 Idle，于是界面说可以再启动、关窗和把
+            // 版本升级也不再拦，而 ProcessManager 那边 IsRunning 还是 true ——
+            // 再点启动会被 Start 里那句 if (IsRunning) return 静静吃掉，
+            // 界面却已经跳到「运行中」。tier-1 堵的就是这个洞，这里漏了一处。
+            // 照 StopNeo 的写法来，两边的判断必须一致
+            if (outcome == ProcessManager.StopOutcome.Terminating)
+            {
+                EnterNeoState(NeoState.Stopping);
+                ArmStopWatchdog();
+            }
+            else
+            {
+                EnterNeoState(NeoState.Idle);
+            }
         }
     }
 
@@ -1053,12 +1103,23 @@ public class MainForm : Form
         // 丢进后台再问的话就得隔着线程去读窗口句柄了
         string screen = taskName == "systemInfo" ? DescribeCurrentScreen() : "";
 
+        // 图库那两个同理，而且比屏幕尺寸更要紧：它们读的是 _settings.GalleryFolders
+        // 这个 List，快照必须在这儿拍。丢到后台再读的话，用户正好在设置页加文件夹，
+        // 那就是一次并发读写。
+        // （刷新单个文件夹不用快照——它只认传进来的那一个路径，不碰这个列表）
+        var folders = taskName is "searchGallery" or "refreshGallery"
+            ? ActiveGalleryFolders
+            : null;
+
         Func<string> work = taskName switch
         {
-            "upgrade"    => () => UpgradeToVersion(arg),
-            "systemInfo" => () => GetSystemInfoJson(screen),
-            "testProxy"  => () => TestProxyConnection(arg),
-            _            => () => JsonSerializer.Serialize(new { error = Lang.T("task.unknown_long", taskName) }),
+            "upgrade"              => () => UpgradeToVersion(arg),
+            "systemInfo"           => () => GetSystemInfoJson(screen),
+            "testProxy"            => () => TestProxyConnection(arg),
+            "searchGallery"        => () => SearchGalleryIn(folders!, arg),
+            "refreshGallery"       => () => { RefreshGalleryIn(folders!); return "{}"; },
+            "refreshGalleryFolder" => () => { RefreshGalleryFolder(arg); return "{}"; },
+            _                      => () => JsonSerializer.Serialize(new { error = Lang.T("task.unknown_long", taskName) }),
         };
 
         Interlocked.Increment(ref _longTasksInFlight);
@@ -1162,16 +1223,26 @@ public class MainForm : Form
         return _scanGalleryJson;
     }
 
-    /// <summary>完整扫描图库文件夹（写缓存 + 生成三档缩略图），从设置页调用</summary>
-    public void RefreshGallery()
+    /// <summary>完整扫描图库文件夹（写缓存 + 生成三档缩略图）</summary>
+    public void RefreshGallery() => RefreshGalleryIn(ActiveGalleryFolders);
+
+    /// <summary>
+    /// folders 得由调用方先拍好快照——界面上这个活儿走的是长任务，
+    /// 于是它跑在后台线程上。直接去读 ActiveGalleryFolders 的话，
+    /// 用户正好在设置页加文件夹，那就是一次 List 的并发读写：
+    /// 轻则读到半截列表，重则当场抛
+    /// </summary>
+    private void RefreshGalleryIn(List<string> folders)
     {
-        _thumbCache?.ScanFolders(ActiveGalleryFolders);
+        _thumbCache?.ScanFolders(folders);
+
         var allPaths = new List<string>();
-        foreach (var folder in ActiveGalleryFolders)
+        foreach (var folder in folders)
         {
             if (!Directory.Exists(folder)) continue;
             allPaths.AddRange(GetImageFiles(folder));
         }
+
         if (allPaths.Count > 0)
             PreGenerateThumbnails(JsonSerializer.Serialize(allPaths));
     }
@@ -1190,13 +1261,22 @@ public class MainForm : Form
     }
 
     /// <summary>搜索图库（按 prompt 文本），返回匹配图片 + 元数据 JSON</summary>
-    public string SearchGallery(string query)
+    public string SearchGallery(string query) => SearchGalleryIn(ActiveGalleryFolders, query);
+
+    /// <summary>
+    /// folders 要快照的理由同 RefreshGalleryIn。
+    /// 这个是三个里最重的：它得把**每一张图**整个文件读进来、解析一遍 chunk，
+    /// 才拿得到 prompt 去比对。图库上千张的时候，同步跑完之前界面是完全不动的
+    /// </summary>
+    private string SearchGalleryIn(List<string> folders, string query)
     {
+        // 这里不碰 _scanGalleryJson ——那是给 UI 线程用的字段，
+        // 从后台线程写它没有意义，还会跟 ScanGallery() 抢
         if (string.IsNullOrWhiteSpace(query))
-            return ScanGallery(); // 空查询返回全部
+            return _thumbCache?.LoadCachedGallery(folders) ?? "{\"images\":[]}";
 
         var list = new List<object>();
-        foreach (var folder in ActiveGalleryFolders)
+        foreach (var folder in folders)
         {
             if (!Directory.Exists(folder)) continue;
             foreach (var file in GetImageFiles(folder))
@@ -1259,6 +1339,26 @@ public class MainForm : Form
         return _thumbCache.GetBase64(imagePath, sizeKey);
     }
 
+    /// <summary>
+    /// 系统信息那八个 WMI 查询，每一个最多等这么久。
+    /// 平时都是毫秒级返回，可磁盘或者驱动出毛病的时候，一个 ASSOCIATORS OF
+    /// 能卡上几分钟——而它跑在长任务线程上，卡住就意味着「系统信息」永远转圈、
+    /// 那个线程永远不归零，连关窗确认都会一直以为还有活在跑。
+    /// 十五秒够正常机器跑完八条，真出问题的也该有个结果了
+    /// </summary>
+    private static readonly TimeSpan WmiTimeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// 建一个带超时的 WMI 查询。不设超时的 searcher 会一直等下去。
+    /// scope 得显式给一个——「查询 + 选项」这个两参数重载 .NET 里没有，
+    /// 只有「scope + 查询 + 选项」那条。空 ManagementScope 就是默认的
+    /// localhost\root\cimv2，跟原来单参数那个走的是同一处
+    /// </summary>
+    private static System.Management.ManagementObjectSearcher WmiQuery(string query) =>
+        new(new System.Management.ManagementScope(),
+            new System.Management.ObjectQuery(query),
+            new System.Management.EnumerationOptions { Timeout = WmiTimeout });
+
     /// <summary>收集系统信息 JSON</summary>
     private string GetSystemInfoJson(string screenDescription)
     {
@@ -1268,7 +1368,7 @@ public class MainForm : Form
             // OS — WMI Caption 准确区分 Win10/Win11
             try
             {
-                using var searcher2 = new System.Management.ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem");
+                using var searcher2 = WmiQuery("SELECT Caption FROM Win32_OperatingSystem");
                 using var results2 = searcher2.Get();
                 foreach (var obj2 in results2)
                 {
@@ -1280,7 +1380,7 @@ public class MainForm : Form
             catch { info["os"] = System.Runtime.InteropServices.RuntimeInformation.OSDescription; }
 
             // CPU
-            using (var searcher = new System.Management.ManagementObjectSearcher("SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor"))
+            using (var searcher = WmiQuery("SELECT Name, NumberOfCores, NumberOfLogicalProcessors FROM Win32_Processor"))
             using (var results = searcher.Get())
             {
                 foreach (var obj in results)
@@ -1318,7 +1418,7 @@ public class MainForm : Form
             bool hasNvidia = gpus.Count > 0;
             if (!hasNvidia)
             {
-                using (var gpuSe = new System.Management.ManagementObjectSearcher("SELECT Name, AdapterRAM, PNPDeviceID FROM Win32_VideoController"))
+                using (var gpuSe = WmiQuery("SELECT Name, AdapterRAM, PNPDeviceID FROM Win32_VideoController"))
                 using (var gpuRe = gpuSe.Get())
                 {
                     foreach (var gpuObj in gpuRe)
@@ -1347,7 +1447,7 @@ public class MainForm : Form
             var memList = new List<string>();
             try
             {
-                using var searcher = new System.Management.ManagementObjectSearcher(
+                using var searcher = WmiQuery(
                     "SELECT Manufacturer, PartNumber, Capacity, SMBIOSMemoryType, MemoryType, ConfiguredClockSpeed FROM Win32_PhysicalMemory");
                 using var results = searcher.Get();
                 foreach (var obj in results)
@@ -1377,7 +1477,7 @@ public class MainForm : Form
             catch { }
             if (memList.Count == 0)
             {
-                using var searcher = new System.Management.ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
+                using var searcher = WmiQuery("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
                 using var results = searcher.Get();
                 foreach (var obj in results)
                 {
@@ -1392,7 +1492,7 @@ public class MainForm : Form
             var diskList = new List<string>();
             try
             {
-                using var searcher = new System.Management.ManagementObjectSearcher(
+                using var searcher = WmiQuery(
                     "SELECT DeviceID, Model, Size FROM Win32_DiskDrive");
                 using var results = searcher.Get();
                 foreach (var obj in results)
@@ -1405,12 +1505,12 @@ public class MainForm : Form
                     string drives = "";
                     try
                     {
-                        using var partSearcher = new System.Management.ManagementObjectSearcher(
+                        using var partSearcher = WmiQuery(
                             $"ASSOCIATORS OF {{Win32_DiskDrive.DeviceID='{obj["DeviceID"]}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition");
                         using var partResults = partSearcher.Get();
                         foreach (var part in partResults)
                         {
-                            using var logSearcher = new System.Management.ManagementObjectSearcher(
+                            using var logSearcher = WmiQuery(
                                 $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{part["DeviceID"]}'}} WHERE AssocClass=Win32_LogicalDiskToPartition");
                             using var logResults = logSearcher.Get();
                             foreach (var log in logResults)

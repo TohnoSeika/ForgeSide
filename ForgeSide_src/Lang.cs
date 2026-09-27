@@ -84,6 +84,7 @@ public static class Lang
             ["fallback.hint"]         = "请将 HTML 文件放在程序同目录下",
             ["crash.no_info"]         = "(没有异常信息)",
             ["crash.message"]         = "ForgeSide 遇到一个错误：\n\n{0}\n\n详细信息已写入 forgeside_crash.log",
+            ["app.already_running"]   = "ForgeSide 已经在运行了，请切到已经打开的那个窗口。\n\n同时开两个会互相覆盖设置，所以这次就不开了",
         },
 
         ["zh-TW"] = new()
@@ -159,6 +160,7 @@ public static class Lang
             ["fallback.hint"]         = "請將 HTML 檔案放在程式同目錄下",
             ["crash.no_info"]         = "(沒有異常資訊)",
             ["crash.message"]         = "ForgeSide 遇到一個錯誤：\n\n{0}\n\n詳細資訊已寫入 forgeside_crash.log",
+            ["app.already_running"]   = "ForgeSide 已經在執行了，請切換到已經開啟的那個視窗。\n\n同時開兩個會互相覆蓋設定，所以這次就不開了",
         },
 
         ["en"] = new()
@@ -234,6 +236,7 @@ public static class Lang
             ["fallback.hint"]         = "Please place the HTML file in the same directory as the program",
             ["crash.no_info"]         = "(no exception details)",
             ["crash.message"]         = "ForgeSide hit an error:\n\n{0}\n\nDetails have been written to forgeside_crash.log",
+            ["app.already_running"]   = "ForgeSide is already running — please switch to the window that is already open.\n\nTwo instances would overwrite each other's settings, so this one will not start",
         },
 
         ["ja"] = new()
@@ -309,6 +312,7 @@ public static class Lang
             ["fallback.hint"]         = "HTML ファイルをプログラムと同じディレクトリに配置してください",
             ["crash.no_info"]         = "(例外情報なし)",
             ["crash.message"]         = "ForgeSide でエラーが発生しました：\n\n{0}\n\n詳細は forgeside_crash.log に書き出しました",
+            ["app.already_running"]   = "ForgeSide はすでに起動しています。開いているウィンドウに切り替えてください。\n\n二つ同時に動かすと設定が上書きし合うため、こちらは起動しません",
         },
     };
 

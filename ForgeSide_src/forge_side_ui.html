@@ -779,9 +779,11 @@
     text-align: center; min-width: 300px; max-width: 400px;
     animation: bgBodyIn 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  /* 升级确认、刷新图库这些提示都是拼了 \n 的多行文案。
+     少了这一行 white-space，它们会全挤成一句 */
   .confirm-card .confirm-msg {
     font-size: 14.5px; font-weight: 460; color: var(--text);
-    margin-bottom: 22px; line-height: 1.5;
+    margin-bottom: 22px; line-height: 1.5; white-space: pre-line;
   }
   .confirm-card .confirm-btns {
     display: flex; gap: 10px; justify-content: center;
@@ -1256,10 +1258,16 @@
     if (waiter) waiter(ok, payload);
   }
 
-  // ── GitHub 图标 — 在默认浏览器中打开链接 ──
-  document.querySelector('.github-icon')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    bridge('openUrl', 'https://github.com/TohnoSeika');
+  // ── 关于页的外链 — 一律交给系统浏览器，不让 WebView 自己导航走 ──
+  // 以前只给 GitHub 图标挂了处理，bilibili 那个还是裸 <a href>：
+  // 点下去 WebView 当场导航过去，整个界面就没了，而且退不回来，只能关掉重开。
+  // 现在按 href 统一处理，以后再加链接也不用人肉记着补一段
+  document.querySelectorAll('.about-link, .github-icon').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = el.getAttribute('href');
+      if (href) bridge('openUrl', href);
+    });
   });
 
   var _confirmCallback = null;
@@ -1567,6 +1575,8 @@
       'settings.lang_zhTW': '繁体中文',
       'settings.lang_en': 'English',
       'settings.lang_ja': '日本語',
+      // ── 启动 ──
+      'app.init_failed': '界面没能连上后台，请关掉 ForgeSide 重新打开',
       // ── 关于 ──
       'about.free': '本软件为免费软件，不会收取任何费用',
       'about.dev': 'Developed by',
@@ -1720,6 +1730,7 @@
       'settings.lang_zhTW': '繁體中文',
       'settings.lang_en': 'English',
       'settings.lang_ja': '日本語',
+      'app.init_failed': '介面沒能連上後台，請關掉 ForgeSide 重新打開',
       'about.free': '本軟體為免費軟體，不會收取任何費用',
       'about.dev': 'Developed by',
       'bg.title': '調整背景位置',
@@ -1865,6 +1876,7 @@
       'settings.lang_zhTW': '繁體中文',
       'settings.lang_en': 'English',
       'settings.lang_ja': '日本語',
+      'app.init_failed': 'The UI could not reach the backend. Please close ForgeSide and open it again',
       'about.free': 'This software is free and will never charge any fees',
       'about.dev': 'Developed by',
       'bg.title': 'Adjust Background Position',
@@ -2010,6 +2022,7 @@
       'settings.lang_zhTW': '繁體中文',
       'settings.lang_en': 'English',
       'settings.lang_ja': '日本語',
+      'app.init_failed': '画面がバックエンドに接続できませんでした。ForgeSide を閉じて開き直してください',
       'about.free': 'このソフトウェアは無料で、料金は一切かかりません',
       'about.dev': 'Developed by',
       'bg.title': '背景位置を調整',
@@ -2810,16 +2823,16 @@
     clearTimeout(gallerySearchTimer);
     gallerySearchTimer = setTimeout(function() {
       var q = input.value.trim();
-      if (q) {
-        try {
-          var json = chrome.webview.hostObjects.sync.forgeSide.SearchGallery(q);
-          var data = JSON.parse(json);
-          galleryImages = data.images || [];
-          rebuildRows();
-        } catch(e) {}
-      } else {
-        loadGallery();
-      }
+      if (!q) { loadGallery(); return; }
+
+      // 搜索得把图库里每一张图都读一遍参数，才比得出哪些命中。
+      // 同步等它就是把界面按在那儿不动——字还没打完窗口就僵了。
+      // 走长任务通道，窗口该转还是转
+      forgeSideLongTask('searchGallery', q).then(function(json) {
+        var data = JSON.parse(json);
+        galleryImages = data.images || [];
+        rebuildRows();
+      }).catch(function() { /* 搜不出来就当没结果，别打断打字 */ });
     }, 300);
   }
 
@@ -3227,18 +3240,22 @@
 
   function refreshAllFolders() {
     showConfirm(t('confirm.refresh_all'), function() {
-      try { chrome.webview.hostObjects.sync.forgeSide.RefreshGallery(); }
-      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
-      showConfirm(t('confirm.refresh_done'), null);
+      // 全量扫描要把每个文件夹走一遍、写缓存，再把缩略图生成排出去。
+      // 以前是同步等它做完，这一段路上窗口整个僵着
+      forgeSideLongTask('refreshGallery')
+        .then(function() { showConfirm(t('confirm.refresh_done'), null); })
+        .catch(function(e) { showConfirm(t('confirm.refresh_fail', e.message), null); });
     });
   }
 
   function refreshSingleFolder(folder) {
     showConfirm(t('confirm.refresh_folder', folder), function() {
-      try { chrome.webview.hostObjects.sync.forgeSide.RefreshGalleryFolder(folder); }
-      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
-      dropThumbSrcCache();
-      showConfirm(t('confirm.refresh_folder_done'), null);
+      forgeSideLongTask('refreshGalleryFolder', folder)
+        .then(function() {
+          dropThumbSrcCache();
+          showConfirm(t('confirm.refresh_folder_done'), null);
+        })
+        .catch(function(e) { showConfirm(t('confirm.refresh_fail', e.message), null); });
     });
   }
 
@@ -3299,9 +3316,20 @@
   function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   // ═══ 初始化: 从 C# 加载设置 ═══
+  //
+  // 宿主对象是异步注入的，头几下拿不到算正常，所以要重试。
+  // 但以前是**无限重试而且一声不响**——真接不上的时候（注入失败、环境不对劲），
+  // 界面就永远停在初始那副样子：按钮全是死的，却没有任何提示。
+  // 用户只会觉得「这东西坏了」，连从哪儿查起都不知道。
+  // 现在试满五秒就认输，并且把话说出来
+  var INIT_RETRY_MS  = 200;
+  var INIT_MAX_TRIES = 25;
+  var _initTries = 0;
+
   function init() {
     try {
       const json = chrome.webview.hostObjects.sync.forgeSide.GetSettingsJson();
+      _initTries = 0;
       settings = JSON.parse(json);
       // 初始化语言
       if (settings.language) {
@@ -3310,7 +3338,29 @@
       }
       applySettings();
       cacheBannerSize();
-    } catch(e) { setTimeout(init, 200); }
+    } catch(e) {
+      if (++_initTries < INIT_MAX_TRIES) {
+        setTimeout(init, INIT_RETRY_MS);
+        return;
+      }
+      showInitFailure(e);
+    }
+  }
+
+  // 桥接彻底没接上。走到这一步什么功能都用不了，唯一还有用的就是把原因摆出来。
+  // t() 照常能用——字典就在这个文件里，不依赖 C#
+  function showInitFailure(err) {
+    document.body.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;'
+      + 'height:100vh;padding:32px;text-align:center;">'
+      + '<div>'
+      + '<div style="font-size:14.5px;font-weight:500;color:var(--text);margin-bottom:12px;">'
+      + escHtml(t('app.init_failed'))
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--text-muted);word-break:break-all;max-width:520px;">'
+      + escHtml(String((err && err.message) || err))
+      + '</div>'
+      + '</div></div>';
   }
 
   function applySettings() {
@@ -3677,12 +3727,24 @@
     }
 
     listEl.innerHTML = html;
-    // 初始化：如果本地版本默认勾选，更新 vSelectedTag
-    var checkedRadio = document.querySelector('input[name="v-upgrade"]:checked');
-    if (checkedRadio) {
-      vSelectedTag = checkedRadio.value;
-      var hint = document.getElementById('vUpgradeHint');
-      if (hint) hint.textContent = t('version.selected', vSelectedTag);
+
+    // 重绘会把 radio 拨回初始态（本地版本那条带着 checked），可用户之前选的
+    // 可能是别的版本。所以这里要照 vSelectedTag 把勾选拨回去，而不是反过来
+    // 拿 checked 去改写 vSelectedTag —— 以前就是反的，于是「选好 vX →
+    // 切去控制台再切回来」这一下重绘会把选择偷换回本地版本，
+    // 再点升级反而被告知「不能在相同版本间切换！」
+    if (vSelectedTag) {
+      var radios = listEl.querySelectorAll('input[name="v-upgrade"]');
+      for (var r = 0; r < radios.length; r++) {
+        if (radios[r].value === vSelectedTag) { radios[r].checked = true; break; }
+      }
+    } else {
+      var checkedRadio = document.querySelector('input[name="v-upgrade"]:checked');
+      if (checkedRadio) {
+        vSelectedTag = checkedRadio.value;
+        var hint = document.getElementById('vUpgradeHint');
+        if (hint) hint.textContent = t('version.selected', vSelectedTag);
+      }
     }
     // 这里以前是直接 btn.classList.add('active'); btn.disabled = false;——
     // 而刷新版本列表恰好是升级中完全可能发生的事，这一下就把按钮重新点亮了。
@@ -3805,10 +3867,15 @@
     if (vUpgradeBusy) return;
     if (!vSelectedTag) return;
 
+    // 从这里往下只用这一个局部量。vSelectedTag 是会被 renderVersionList
+    // 重绘改写的全局量 —— 升级要跑好几秒，这期间用户切走再切回版本页就会重绘，
+    // 那一下能把选择换成别的版本，于是成功提示报出一个错的版本号
+    var targetTag = vSelectedTag;
+
     var hint = document.getElementById('vUpgradeHint');
     vUpgradeBusy = true;
     updateUpgradeButton();   // 换成 ⏳，按钮同时失去可点
-    if (hint) hint.textContent = t('version.upgrading_to', vSelectedTag);
+    if (hint) hint.textContent = t('version.upgrading_to', targetTag);
     // 自动切换到控制台查看升级日志
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
@@ -3819,12 +3886,12 @@
     // 升级要跑 fetch + status + reset 三条 git 命令，同步等的话
     // 上面刚设的"⏳ 升级中"根本没机会画出来，窗口先从点下去僵到命令结束。
     // 走长任务通道，按钮状态立刻生效，控制台日志也能一条条流出来
-    forgeSideLongTask('upgrade', vSelectedTag).then(function(resultJson) {
+    forgeSideLongTask('upgrade', targetTag).then(function(resultJson) {
       var result = JSON.parse(resultJson);
       if (result.success) {
         // 升级成功：重置本地版本缓存，刷新显示
         vLocalVersionStr = null;
-        if (hint) hint.textContent = t('version.upgrade_done', vSelectedTag);
+        if (hint) hint.textContent = t('version.upgrade_done', targetTag);
         // 先清选择再更新按钮——按钮的 .active 是照着 vSelectedTag 算的，
         // 顺序反了会被算成"还选着，那就能再升一次"
         vSelectedTag = null;
