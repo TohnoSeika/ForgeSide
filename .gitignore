@@ -8,6 +8,11 @@ dist/
 **/*.WebView2/
 **/EBWebView/
 
+# 运行期用户数据
+**/forgeside.settings.json
+**/.thumbcache/
+**/outputs/
+
 # IDE
 .vs/
 *.user
@@ -29,8 +34,8 @@ ForgeSide_src_V1.2/
 Fin/
 Promotion/
 icon/
-*.png
 *.mp4
 *.wav
-*.txt
 
+# 根目录的临时图片
+/ChatGPT Image*.png

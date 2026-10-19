@@ -151,7 +151,38 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 3. `ForgeSide.exe` をダブルクリックして起動
 
 
+## 🔧 ソースからのビルド
+
+[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) が必要です。
+
+```powershell
+git clone https://github.com/TohnoSeika/ForgeSide.git
+cd ForgeSide
+
+dotnet build ForgeSide_src/ForgeSide.csproj
+
+dotnet publish ForgeSide_src/ForgeSide.csproj `
+  -c Release -r win-x64 --self-contained false `
+  -o publish
+```
+
+`publish` フォルダがそのまま配布用になります。実行先には .NET 10 Desktop Runtime と WebView2 ランタイムが必要です。
+
+
 ## 📋 更新履歴
+
+### V1.5
+
+- 🛡️ 孤立プロセスを修正：起動の後処理に失敗してもプロセス参照を失わず、「停止」が引き続き使え、UI も実際の状態を表示
+- 🔒 プロセスの起動 / 停止 / 終了をロックで同期し、「停止と同時に別のプロセスが起動する」競合を解消
+- ⬆️ アップグレードボタンの文言・アイコン・クリック可否を一元管理し、アップグレード中の再入を拒否
+- 🖼️ ギャラリーの検索と更新をバックグラウンドの長時間タスクに変更し、大きなフォルダでも UI が固まらない
+- 🔍 画像パラメータ読み取り：iTXt に対応（中国語 / 日本語のプロンプト）、ネガティブプロンプトが空のときに Seed や Steps などが失われる問題を修正
+- 🌐 外部リンクをシステムのブラウザで開くように変更し、UI のナビゲーションを乗っ取らない。バックエンドに接続できないときは白画面ではなく明確なメッセージを表示
+- 🧩 サードパーティ製パックで素の Python 起動へのフォールバックを廃止し、依存関係不足による連鎖エラーを回避
+- ⏱️ WMI クエリに 15 秒のタイムアウトを追加、アプリ起動に単一インスタンスのミューテックスを追加
+- 🌍 4 言語の UI に残っていた未翻訳の文言を解消し、ハードコードされた中国語と死んだキーをゼロに
+- 🐛 コンソールが連続出力時に更新されにくい問題を修正
 
 ### V1.41
 
@@ -205,10 +236,16 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ---
 
+## ⚖️ 免責事項
+
+ForgeSide は非公式のサードパーティ製ツールであり、Forge NEO プロジェクトおよびその作者とは提携していません。Forge NEO はそれぞれの所有者の商標です。
+
+---
+
 ## 📜 ライセンス
 
-本プロジェクトは**フリーソフトウェア**です。すべての権利は留保されます。  
-詳細は [LICENSE](./LICENSE) ファイルをご覧ください。
+本プロジェクトは [MIT ライセンス](./LICENSE) の下で公開されています。  
+自由に使用・改変・再配布でき、商用利用も可能です。
 
 ---
 

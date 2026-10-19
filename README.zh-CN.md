@@ -105,8 +105,6 @@ ForgeSide 仅支持启动和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ## 📦 下载
 
-### 测试人员
-
 从 [Releases](https://github.com/TohnoSeika/ForgeSide/releases) 页面下载最新版本的压缩包。
 
 ### 系统要求
@@ -153,7 +151,38 @@ ForgeSide 仅支持启动和管理 <a href="https://github.com/Haoming02/sd-webu
 3. 双击 `ForgeSide.exe` 即可运行
 
 
+## 🔧 从源码构建
+
+需要 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。
+
+```powershell
+git clone https://github.com/TohnoSeika/ForgeSide.git
+cd ForgeSide
+
+dotnet build ForgeSide_src/ForgeSide.csproj
+
+dotnet publish ForgeSide_src/ForgeSide.csproj `
+  -c Release -r win-x64 --self-contained false `
+  -o publish
+```
+
+`publish` 文件夹即可直接分发。目标电脑仍需安装 .NET 10 Desktop Runtime 和 WebView2 运行时。
+
+
 ## 📋 更新记录
+
+### V1.5
+
+- 🛡️ 修复孤儿进程：启动收尾失败时不再丢失进程引用，「停止」仍然可用，界面也会如实显示运行状态
+- 🔒 进程的启动 / 停止 / 退出三边加锁，堵住「点停止的同时又拉起一个」的竞态
+- ⬆️ 升级按钮的文字、图标和可点击状态统一管理，升级过程中拒绝重复进入
+- 🖼️ 图库搜索与刷新改走后台长任务，大文件夹不再让界面僵住
+- 🔍 图片参数读取：新增 iTXt 支持（中文 / 日文提示词），修复负面提示词为空时 Seed、Steps 等参数全部丢失的问题
+- 🌐 外部链接改由系统浏览器打开，不再劫持界面导航；连不上后台时给出明确提示而不是白屏
+- 🧩 第三方整合包不再回退到裸 Python 启动，避免缺依赖的连环报错
+- ⏱️ WMI 查询增加 15 秒超时；程序启动增加单实例互斥
+- 🌍 清空四语言界面里剩余的未翻译文案，硬编码中文与死 key 全部归零
+- 🐛 修复控制台在持续输出时迟迟不刷新的问题
 
 ### V1.41
 
@@ -208,10 +237,16 @@ ForgeSide 仅支持启动和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ---
 
+## ⚖️ 免责声明
+
+ForgeSide 是非官方第三方工具，与 Forge NEO 项目及其作者没有隶属关系。Forge NEO 是其各自所有者的商标。
+
+---
+
 ## 📜 许可证
 
-本项目为 **免费软件**，保留所有权利。  
-详情请参见 [LICENSE](./LICENSE) 文件。
+本项目采用 [MIT 许可证](./LICENSE) 发布。  
+可以自由使用、修改和分发，包括商业用途。
 
 ---
 

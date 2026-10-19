@@ -151,7 +151,38 @@ Download the latest release from the [Releases](https://github.com/TohnoSeika/Fo
 3. Double-click `ForgeSide.exe` to launch
 
 
+## 🔧 Building from Source
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```powershell
+git clone https://github.com/TohnoSeika/ForgeSide.git
+cd ForgeSide
+
+dotnet build ForgeSide_src/ForgeSide.csproj
+
+dotnet publish ForgeSide_src/ForgeSide.csproj `
+  -c Release -r win-x64 --self-contained false `
+  -o publish
+```
+
+The `publish` folder is ready to distribute. The .NET 10 Desktop Runtime and WebView2 Runtime are still required on the target machine.
+
+
 ## 📋 Changelog
+
+### V1.5
+
+- 🛡️ Fixed orphan processes: a failed start no longer loses the process reference, so Stop still works and the UI reflects the real state
+- 🔒 Process start / stop / exit are now synchronized, preventing a duplicate launch while stopping
+- ⬆️ Upgrade button text, icon, and clickability are managed in one place; re-entering an upgrade is blocked
+- 🖼️ Gallery search and refresh run as background tasks — large folders no longer freeze the UI
+- 🔍 Image parameter reader: added iTXt support for Chinese / Japanese prompts, and fixed the loss of Seed, Steps, and other parameters when the negative prompt is empty
+- 🌐 External links now open in the system browser instead of navigating the UI; a clear message replaces the blank page when the backend is unreachable
+- 🧩 Third-party packs no longer fall back to launching with bare Python
+- ⏱️ WMI queries now have a 15-second timeout; the app uses a single-instance mutex
+- 🌍 Removed all remaining untranslated strings across the four UI languages, including hardcoded Chinese and dead keys
+- 🐛 Fixed the console failing to refresh under continuous output
 
 ### V1.41
 
@@ -206,10 +237,16 @@ Parts of this project's code and UI design were created with AI assistance.
 
 ---
 
+## ⚖️ Disclaimer
+
+ForgeSide is an unofficial third-party tool and is not affiliated with the Forge NEO project or its authors. Forge NEO is a trademark of its respective owners.
+
+---
+
 ## 📜 License
 
-This project is **free software**, all rights reserved.  
-See [LICENSE](./LICENSE) for details.
+This project is released under the [MIT License](./LICENSE).  
+You are free to use, modify, and distribute it, including for commercial purposes.
 
 ---
 

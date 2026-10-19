@@ -58,6 +58,8 @@ ForgeSide 是 Forge NEO 的辅助启动工具，提供图形化界面来
 • ForgeSide 需要在 Forge NEO 根目录附近才能正确定位
   NEO 的安装位置，建议放在 NEO 根目录的子文件夹中
 • 本软件是免费软件，不会收取任何费用
+• 本软件以 MIT 许可证开源，可以自由使用、修改和分发
+  许可证全文见同目录下的 LICENSE 文件
 • 如果有问题或反馈，请联系开发者
 
    Bilibili：https://space.bilibili.com/14816

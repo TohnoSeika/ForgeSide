@@ -151,7 +151,38 @@ ForgeSide 僅支援啟動和管理 <a href="https://github.com/Haoming02/sd-webu
 3. 雙擊 `ForgeSide.exe` 即可執行
 
 
+## 🔧 從原始碼建置
+
+需要 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。
+
+```powershell
+git clone https://github.com/TohnoSeika/ForgeSide.git
+cd ForgeSide
+
+dotnet build ForgeSide_src/ForgeSide.csproj
+
+dotnet publish ForgeSide_src/ForgeSide.csproj `
+  -c Release -r win-x64 --self-contained false `
+  -o publish
+```
+
+`publish` 資料夾即可直接散布。目標電腦仍需安裝 .NET 10 Desktop Runtime 和 WebView2 執行階段。
+
+
 ## 📋 更新記錄
+
+### V1.5
+
+- 🛡️ 修復孤兒行程：啟動收尾失敗時不再遺失行程參考，「停止」仍然可用，介面也會如實顯示執行狀態
+- 🔒 行程的啟動 / 停止 / 結束三邊加鎖，堵住「按下停止的同時又啟動一個」的競態
+- ⬆️ 升級按鈕的文字、圖示和可點擊狀態統一管理，升級過程中拒絕重複進入
+- 🖼️ 圖庫搜尋與重新整理改走背景長任務，大資料夾不再讓介面凍住
+- 🔍 圖片參數讀取：新增 iTXt 支援（中文 / 日文提示詞），修復負面提示詞為空時 Seed、Steps 等參數全部遺失的問題
+- 🌐 外部連結改由系統瀏覽器開啟，不再劫持介面導覽；連不上後台時給出明確提示而不是白畫面
+- 🧩 第三方整合包不再回退到裸 Python 啟動，避免缺少相依性的連環錯誤
+- ⏱️ WMI 查詢增加 15 秒逾時；程式啟動增加單一實例互斥
+- 🌍 清空四語言介面裡剩餘的未翻譯文案，硬編碼中文與死 key 全部歸零
+- 🐛 修復主控台在持續輸出時遲遲不重新整理的問題
 
 ### V1.41
 
@@ -206,10 +237,16 @@ ForgeSide 僅支援啟動和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ---
 
+## ⚖️ 免責聲明
+
+ForgeSide 是非官方第三方工具，與 Forge NEO 專案及其作者沒有隸屬關係。Forge NEO 是其各自所有者的商標。
+
+---
+
 ## 📜 許可證
 
-本專案為 **免費軟體**，保留所有權利。  
-詳情請參見 [LICENSE](./LICENSE) 檔案。
+本專案採用 [MIT 許可證](./LICENSE) 發布。  
+可以自由使用、修改及散布，包括商業用途。
 
 ---
 
