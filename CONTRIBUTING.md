@@ -35,7 +35,7 @@ one dictionary per language.
 
 ## Submitting a pull request
 
-1. Fork the repository and create a branch from `main`.
+1. Fork the repository and create a branch from `master`.
 2. Make your change and build it locally.
 3. Describe what changed and why in the PR description, including screenshots
    for UI changes.
