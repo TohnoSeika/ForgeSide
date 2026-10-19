@@ -80,25 +80,25 @@ ForgeSide 仅支持启动和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ## 🖼 截图
 
-![首页](screenshots/01.jpg)
+![首页](screenshots/CNS/CNS-01.jpg)
 *首页 — 启动入口、快捷文件夹、背景图*
 
-![图片参数](screenshots/02.jpg)
+![图片参数](screenshots/CNS/CNS-02.jpg)
 *图片参数 — 拖入 PNG 自动解析生成信息*
 
-![图库](screenshots/03.jpg)
+![图库](screenshots/CNS/CNS-03.jpg)
 *图库 — 缩略图浏览、多 tag 搜索*
 
-![控制台](screenshots/04.jpg)
+![控制台](screenshots/CNS/CNS-04.jpg)
 *控制台 — 实时输出日志、启动/终止 NEO*
 
-![版本管理](screenshots/05.jpg)
+![版本管理](screenshots/CNS/CNS-05.jpg)
 *版本管理 — 查看版本、Release 记录、一键升级*
 
-![设置](screenshots/06.jpg)
+![设置](screenshots/CNS/CNS-06.jpg)
 *设置 — 主题切换、启动模式、代理、提示音等*
 
-![关于](screenshots/07.jpg)
+![关于](screenshots/CNS/CNS-07.jpg)
 *关于 — 版本信息、版权声明*
 
 ---
