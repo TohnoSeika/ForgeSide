@@ -22,9 +22,8 @@ CDNs, third-party JavaScript libraries, or icon fonts. All icons are inline SVG.
 
 ## Project assets
 
-- `ForgeSide_src/default_bg.jpg` and `ForgeSide_src/ico.ico` are project assets.
+- `ForgeSide_src/default_bg.jpg` and `ForgeSide_src/ico.ico` were generated with
+  AI image tools and are distributed as project assets.
 - Images under `screenshots/` are screenshots of ForgeSide and may include
-  AI-generated images produced with Stable Diffusion models.
-
-> Asset provenance and model license terms are confirmed by the project author
-> before each public release.
+  AI-generated images produced with Stable Diffusion models. The model terms
+  in use permit redistribution.
