@@ -24,8 +24,9 @@ ForgeSide 僅支援啟動和管理 <a href="https://github.com/Haoming02/sd-webu
 
 ### 🚀 啟動與管理
 - **一鍵啟動 Forge NEO** —— 無需手動輸入命令，點擊即可啟動
-- **三種啟動模式** —— 支援 SDP 模式（相容性優先，停用加速）、Sage 模式（啟用 SageAttention 加速）、標準模式（僅啟動 webui.bat）
-- **啟動方式程式碼已內置** —— 不再依賴外部腳本
+- **三種啟動模式** —— SDP（相容性優先，停用 SageAttention / Flash / xFormers）、Sage（保留整合包內建的 SageAttention 加速）、標準（使用整合包預設參數，不額外附加加速開關）
+- **自動選擇啟動方式** —— 依整合包內容自動選用包內 Python 或包自帶的 webui.bat；若 NEO 啟動後立即結束，會自動改用另一種方式再試一次
+- **第三方整合包** —— 一律透過整合包自己的入口腳本啟動，保留其內建 Python、ffmpeg 與執行環境
 - **行程守護** —— 執行時關閉視窗需要二次確認，防止誤關閉正在執行的 NEO 行程
 
 ### 🖥️ 即時控制台
@@ -34,13 +35,13 @@ ForgeSide 僅支援啟動和管理 <a href="https://github.com/Haoming02/sd-webu
 - 執行中可隨時一鍵「終止 NEO」或「開啟 WebUI」
 
 ### 🖼️ 圖片參數讀取
-- 載入一張由 WebUI / Forge / ComfyUI 生成的 PNG 圖片
+- 載入一張由 WebUI / Forge / ComfyUI 生成的 PNG / JPEG / WebP 圖片
 - 自動解析並展示：Prompt、Negative Prompt、Seed、Steps、CFG Scale、Sampler、Model、解析度等參數
 - 支援點擊載入、拖放檔案、拖放 base64 三種方式
 - 每個參數旁都有複製按鈕，方便快速複製
 
 ### 🗂️ 圖庫瀏覽
-- 自動掃描 Forge NEO 輸出目錄下的 PNG 圖片
+- 自動掃描 Forge NEO 輸出目錄下的 PNG / JPEG / WebP 圖片
 - 三檔縮圖尺寸（小/中/大），背景非同步生成，瞬間載入
 - 支援多 tag 搜尋（用逗號分隔，順序無關），快速定位圖片
 - 雙擊圖片用系統預設圖片檢視器開啟

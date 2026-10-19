@@ -24,8 +24,9 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 
 ### 🚀 起動と管理
 - **ワンクリック起動** — コマンド入力不要、クリックするだけ
-- **3つの起動モード** — SDP（互換性優先、加速無効）、Sage（SageAttention 加速有効）、標準（webui.bat を起動）
-- **内蔵起動ロジック** — 外部スクリプト不要
+- **3つの起動モード** — SDP（互換性優先：SageAttention / Flash / xFormers を無効化）、Sage（パック内蔵の SageAttention 加速を使用）、標準（パックの既定パラメータを使用し、追加の加速スイッチは付けない）
+- **起動方式の自動選択** — パックの内容に応じて同梱 Python かパック付属の `webui.bat` を自動で選択。NEO が起動直後に終了した場合は、もう一方の方式で一度だけ再試行
+- **サードパーティパック** — パック自身のエントリースクリプト経由で起動し、同梱 Python・ffmpeg・実行環境をそのまま使う
 - **プロセス保護** — NEO 実行中の誤終了を防止する確認ダイアログ
 
 ### 🖥️ リアルタイムコンソール
@@ -34,13 +35,13 @@ ForgeSideは<a href="https://github.com/Haoming02/sd-webui-forge-classic/">Forge
 - 実行中はいつでも「NEO 停止」または「WebUI を開く」をワンクリック
 
 ### 🖼️ 画像パラメータ解析
-- WebUI / Forge / ComfyUI で生成された PNG 画像を読み込み
+- WebUI / Forge / ComfyUI で生成された PNG / JPEG / WebP 画像を読み込み
 - Prompt、Negative Prompt、Seed、Steps、CFG Scale、Sampler、Model、解像度などを自動解析
 - クリック読み込み、ファイルドラッグ＆ドロップ、base64 ドラッグ＆ドロップに対応
 - 各パラメータにコピーボタン付き
 
 ### 🗂️ ギャラリー閲覧
-- Forge NEO の出力ディレクトリから PNG 画像を自動スキャン
+- Forge NEO の出力ディレクトリから PNG / JPEG / WebP 画像を自動スキャン
 - 3段階のサムネイルサイズ（小/中/大）、非同期でバックグラウンド生成
 - 複数タグ検索（カンマ区切り、順序不問）
 - ダブルクリックでデフォルトビューアで画像を開く
