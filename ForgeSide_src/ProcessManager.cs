@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -35,8 +36,7 @@ public partial class ProcessManager : IDisposable
         string PythonExe,       // 空 = 包里没有解释器，只能用系统 PATH 上那个
         ForgePackage Package,
         string LaunchMode,
-        bool ProxyEnabled,
-        string ProxyUrl);
+        string? ProxyTarget);   // 探测确认端口活着才会填进来；null = 这次直连
 
     private Process? _neoProcess;
     private CancellationTokenSource? _cts;
@@ -96,7 +96,12 @@ public partial class ProcessManager : IDisposable
         string webuiDir = FindWebuiDir(neoRoot);
         string pythonExe = !string.IsNullOrEmpty(webuiDir) ? FindPythonExe(webuiDir, neoRoot) : "";
 
-        var ctx = new LaunchContext(neoRoot, webuiDir, pythonExe, pkg, launchMode, proxyEnabled, proxyUrl);
+        // 开关开着只代表「想走代理」，不代表代理真在跑。7897 上没人听的时候
+        // 硬把 HTTP_PROXY 塞给子进程，pip 连本可以直连的国内镜像都会连不上——
+        // 所以先探一下端口，探不通就这一次直连
+        string? proxyTarget = ResolveProxyTarget(proxyEnabled, proxyUrl);
+
+        var ctx = new LaunchContext(neoRoot, webuiDir, pythonExe, pkg, launchMode, proxyTarget);
         LaunchPlan? plan = ChooseLaunchPlan(ctx);
 
         lock (_gate)
@@ -114,6 +119,10 @@ public partial class ProcessManager : IDisposable
             // 打全路径——只显示 "python.exe" 的话，出问题时根本看不出用的是包里的还是系统的
             if (!string.IsNullOrEmpty(pythonExe))
                 OnOutput?.Invoke($"[ForgeSide] Python: {pythonExe}");
+
+            // 让 Minagi 知道这次实际走的是哪条路，而不是自己猜
+            if (proxyEnabled && proxyTarget == null && !string.IsNullOrWhiteSpace(proxyUrl))
+                OnOutput?.Invoke(Lang.T("console.proxy_unreachable", proxyUrl.Trim()));
 
             if (plan == null)
             {
@@ -184,6 +193,51 @@ public partial class ProcessManager : IDisposable
     }
 
     // ═══════════════════════════════════════
+    //  代理
+    // ═══════════════════════════════════════
+    // 这一小段是 Minagi 开机第一天踩出来的：代理没开、开关却开着，
+    // NEO 满屏 pip 连接被拒——明明直连镜像完全没问题。所以现在先问一句「你在听吗」。
+
+    /// <summary>开关开着、端口又探得通，才把地址交出去；否则返回 null，这次直连</summary>
+    private static string? ResolveProxyTarget(bool enabled, string proxyUrl)
+        => enabled && IsEndpointReachable(proxyUrl) ? proxyUrl.Trim() : null;
+
+    /// <summary>
+    /// 只连一下端口，不发任何请求——探测不该拖慢启动。
+    /// 地址写得不成样子也算不通：宁可直连，也别把坏地址塞进子进程。
+    /// </summary>
+    private static bool IsEndpointReachable(string proxyUrl, int timeoutMs = 400)
+    {
+        if (!Uri.TryCreate(proxyUrl?.Trim(), UriKind.Absolute, out var uri) || uri.Port <= 0)
+            return false;
+
+        try
+        {
+            using var client = new TcpClient();
+            IAsyncResult pending = client.BeginConnect(uri.Host, uri.Port, null, null);
+            if (!pending.AsyncWaitHandle.WaitOne(timeoutMs)) return false;
+
+            client.EndConnect(pending);   // 拒绝连接会在这里抛，交给下面的 catch
+            return true;
+        }
+        catch
+        {
+            return false;   // 连不上就是连不上，不需要区分是拒绝还是超时
+        }
+    }
+
+    /// <summary>把代理写进子进程环境。目标为 null 时什么都不做，让它直连</summary>
+    private static void ApplyProxyEnvironment(ProcessStartInfo psi, string? proxyTarget)
+    {
+        if (proxyTarget == null) return;
+
+        psi.Environment["HTTP_PROXY"]  = proxyTarget;
+        psi.Environment["HTTPS_PROXY"] = proxyTarget;
+        psi.Environment["ALL_PROXY"]   = proxyTarget;
+        psi.Environment["NO_PROXY"]    = "localhost,127.0.0.1";
+    }
+
+    // ═══════════════════════════════════════
     //  方式 A：直接 python launch.py
     // ═══════════════════════════════════════
 
@@ -223,14 +277,8 @@ public partial class ProcessManager : IDisposable
                 $"{Path.Combine(sysDir, "git", "bin")};{inheritedPath}";
         }
 
-        // 注入代理环境变量
-        if (ctx.ProxyEnabled && !string.IsNullOrWhiteSpace(ctx.ProxyUrl))
-        {
-            psi.Environment["HTTP_PROXY"]  = ctx.ProxyUrl;
-            psi.Environment["HTTPS_PROXY"] = ctx.ProxyUrl;
-            psi.Environment["ALL_PROXY"]   = ctx.ProxyUrl;
-            psi.Environment["NO_PROXY"]    = "localhost,127.0.0.1";
-        }
+        // 注入代理环境变量——ProxyTarget 在 Start 里已经探过端口，null 就是这次直连
+        ApplyProxyEnvironment(psi, ctx.ProxyTarget);
 
         // 光设 StandardOutputEncoding 是不够的——Python 在 stdout 被重定向时
         // 用的是 locale.getpreferredencoding()，中文 Windows 上就是 GBK，
@@ -382,13 +430,7 @@ public partial class ProcessManager : IDisposable
             CreateNoWindow = true,
         };
 
-        if (ctx.ProxyEnabled && !string.IsNullOrWhiteSpace(ctx.ProxyUrl))
-        {
-            psi.Environment["HTTP_PROXY"]  = ctx.ProxyUrl;
-            psi.Environment["HTTPS_PROXY"] = ctx.ProxyUrl;
-            psi.Environment["ALL_PROXY"]   = ctx.ProxyUrl;
-            psi.Environment["NO_PROXY"]    = "localhost,127.0.0.1";
-        }
+        ApplyProxyEnvironment(psi, ctx.ProxyTarget);
 
         // bat 开头已切到 UTF-8 代码页（chcp 65001），用 UTF-8 读取避免乱码。
         // 但 chcp 只管控制台代码页、管不到被重定向的管道，所以还要压 Python 用 UTF-8
