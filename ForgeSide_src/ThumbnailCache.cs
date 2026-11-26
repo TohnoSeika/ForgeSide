@@ -378,32 +378,86 @@ public class ThumbnailCache : IDisposable
             cmd.CommandText = "DELETE FROM gallery_files WHERE folder = @f";
             cmd.Parameters.AddWithValue("@f", folder);
             cmd.ExecuteNonQuery();
-            // 清理该文件夹的缩略图 BLOB
+            // 清理该文件夹的缩略图 BLOB。
+            // 这里以前把反斜杠换成斜杠再去 LIKE，可 source_path 存的全是反斜杠——
+            // 条件永远不成立，于是「清除这个文件夹的缓存」只清了记录、没清图。
+            // 现在按原样拼前缀，并且把 LIKE 的通配符转义掉
             using var cmd2 = _conn.CreateCommand();
-            cmd2.CommandText = "DELETE FROM thumb_data WHERE source_path LIKE @p";
-            cmd2.Parameters.AddWithValue("@p", folder.Replace("\\", "/") + "/%");
+            cmd2.CommandText = "DELETE FROM thumb_data WHERE source_path LIKE @p ESCAPE '~'";
+            cmd2.Parameters.AddWithValue("@p", EscapeLike(folder.TrimEnd('\\', '/')) + "\\%");
             cmd2.ExecuteNonQuery();
         }
     }
+
+    /// <summary>路径里真出现 % 或 _ 的话，LIKE 会把它当通配符——先转义掉</summary>
+    private static string EscapeLike(string text)
+        => text.Replace("~", "~~").Replace("%", "~%").Replace("_", "~_");
 
     private void CleanStaleFileEntries(List<string> activeFolders)
     {
         lock (_db)
         {
+            // 只清「当前还在的文件夹」底下的记录。以前是一律清——
+            // 外接盘没挂载的时候，那一整个盘的图会被当成已删除，
+            // 记录和缩略图一起没，盘回来还得一张张重新解码。
+            // 反正不在 ActiveGalleryFolders 里的行也不会显示出来，留着不碍事
+            var active = new HashSet<string>(activeFolders, StringComparer.OrdinalIgnoreCase);
+
             var stale = new List<string>();
             using (var cmd = _conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT file_path FROM gallery_files";
+                cmd.CommandText = "SELECT file_path, folder FROM gallery_files";
                 using var reader = cmd.ExecuteReader();
-                while (reader.Read()) { string p = reader.GetString(0); if (!File.Exists(p)) stale.Add(p); }
+                while (reader.Read())
+                {
+                    if (!active.Contains(reader.GetString(1))) continue;
+                    string p = reader.GetString(0);
+                    if (!File.Exists(p)) stale.Add(p);
+                }
             }
+            if (stale.Count == 0) return;
+
+            // 缩略图跟着记录一起走。反正 File.Exists 已经查过了，
+            // 这里多出来的只是一条按主键删除，不花什么
+            using var tx = _conn.BeginTransaction();
             foreach (var p in stale)
             {
                 using var del = _conn.CreateCommand();
-                del.CommandText = "DELETE FROM gallery_files WHERE file_path = @p";
+                del.Transaction = tx;
+                del.CommandText = """
+                    DELETE FROM gallery_files WHERE file_path = @p;
+                    DELETE FROM thumb_data    WHERE source_path = @p;
+                    """;
                 del.Parameters.AddWithValue("@p", p);
                 del.ExecuteNonQuery();
             }
+            tx.Commit();
+        }
+    }
+
+    /// <summary>
+    /// 清掉「原图早就不在、缩略图却还留着」的孤儿 BLOB——历史遗留和
+    /// 手动删掉的文件夹都会留下这种。
+    /// 一条 SQL 整体清，**不**逐行去查文件在不在：那才是会拖慢的做法。
+    /// 返回删掉的 BLOB 数
+    /// </summary>
+    public int PurgeOrphanThumbnails()
+    {
+        lock (_db)
+        {
+            try
+            {
+                using var cmd = _conn.CreateCommand();
+                cmd.CommandText = """
+                    DELETE FROM thumb_data
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM gallery_files g
+                        WHERE g.file_path = thumb_data.source_path
+                    )
+                    """;
+                return cmd.ExecuteNonQuery();
+            }
+            catch { return 0; }
         }
     }
 

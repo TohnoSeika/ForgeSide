@@ -180,6 +180,7 @@ The `publish` folder is ready to distribute. The .NET 10 Desktop Runtime and Web
 - 🐛 Fixed the flood of "connection refused" errors during NEO startup when the proxy app wasn't running yet, which also broke package installs that would have worked fine against a direct mirror
 - ⏱️ NEO is launched with `--log-startup`, so every startup stage reports its own timing in the console — when a launch is slow, the culprit is right there
 - 🐛 Fixed NEO failing to start when it asks for "Press Enter" after a version change, since ForgeSide has no console to press it in; the upgrade now also warns that the next launch re-checks dependencies
+- 🧹 The thumbnail cache cleans itself: thumbnails of deleted images no longer sit in the database forever, and an unmounted drive no longer wipes that drive's cache by mistake
 
 ### V1.5
 

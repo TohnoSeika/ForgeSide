@@ -1235,6 +1235,7 @@ public class MainForm : Form
     private void RefreshGalleryIn(List<string> folders)
     {
         _thumbCache?.ScanFolders(folders);
+        PurgeOrphanThumbnailsOnce();
 
         var allPaths = new List<string>();
         foreach (var folder in folders)
@@ -1273,6 +1274,7 @@ public class MainForm : Form
     private readonly Dictionary<string, int> _galleryPending = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _galleryRemoved = new(StringComparer.OrdinalIgnoreCase);
     private int _galleryFlushTicket;
+    private int _orphanPurgeStarted;
 
     /// <summary>
     /// 收进缓存时记在哪个 folder 名下。必须和图库默认目录同一个字符串——
@@ -1426,6 +1428,7 @@ public class MainForm : Form
             Task.Run(() =>
             {
                 _thumbCache?.ScanFolders(folders);
+                PurgeOrphanThumbnailsOnce();
                 NotifyGalleryChanged();
             });
         });
@@ -1437,7 +1440,21 @@ public class MainForm : Form
     /// 返回完整列表，JS 拿去跟自己手上的比，没变就不重排
     /// </summary>
     private string ScanGalleryIncremental(List<string> folders)
-        => _thumbCache?.ScanFolders(folders) ?? "{\"images\":[]}";
+    {
+        string json = _thumbCache?.ScanFolders(folders) ?? "{\"images\":[]}";
+        PurgeOrphanThumbnailsOnce();
+        return json;
+    }
+
+    /// <summary>
+    /// 孤儿缩略图整个会话清一次就够。用 Interlocked 兜着——
+    /// 切页扫描和手动刷新可能同时进来，两边各跑一遍纯属浪费
+    /// </summary>
+    private void PurgeOrphanThumbnailsOnce()
+    {
+        if (Interlocked.Exchange(ref _orphanPurgeStarted, 1) != 0) return;
+        _thumbCache?.PurgeOrphanThumbnails();
+    }
 
     /// <summary>搜索图库（按 prompt 文本），返回匹配图片 + 元数据 JSON</summary>
     public string SearchGallery(string query) => SearchGalleryIn(ActiveGalleryFolders, query);
