@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <style>
@@ -1046,11 +1046,11 @@
     <div class="sg">
       <div class="sgt" data-i18n="settings.appearance">外观</div>
       <div class="theme-cards">
-        <div class="tcard sel" id="tcardLight" onclick="setTheme(false)">
+        <div class="tcard" id="tcardLight" onclick="setTheme(false)">
           <div class="td light"></div>
           <div><div class="tl" data-i18n="settings.light">亮色模式</div><div class="tsub" data-i18n="settings.light_desc">温暖、柔和的日间色调</div></div>
         </div>
-        <div class="tcard" id="tcardDark" onclick="setTheme(true)">
+        <div class="tcard sel" id="tcardDark" onclick="setTheme(true)">
           <div class="td dark"></div>
           <div><div class="tl" data-i18n="settings.dark">暗色模式</div><div class="tsub" data-i18n="settings.dark_desc">深邃、沉浸的夜间色调</div></div>
         </div>
@@ -2198,12 +2198,17 @@
   let activeTab = 0;
 
   // ═══ 主题切换 ═══
-  function setTheme(dark) {
+  // 只负责画，不负责记——启动时也走这里，免得平白把设置文件写一遍
+  function paintTheme(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     document.getElementById('tcardLight').classList.toggle('sel', !dark);
     document.getElementById('tcardDark').classList.toggle('sel', dark);
-    bridge('setTheme', dark ? 'true' : 'false');
     settings.isDarkMode = dark;
+  }
+
+  function setTheme(dark) {
+    paintTheme(dark);
+    bridge('setTheme', dark ? 'true' : 'false');
   }
 
   // ═══ 标题栏拖动 + 双击最大化 ═══
@@ -3497,7 +3502,8 @@
   }
 
   function applySettings() {
-    if (settings.isDarkMode) setTheme(true);
+    // 默认暗色：配置里明确写了 false 才用亮色
+    paintTheme(settings.isDarkMode !== false);
     // 语言选择器
     if (settings.language) {
       document.getElementById('languageSelect').value = settings.language;

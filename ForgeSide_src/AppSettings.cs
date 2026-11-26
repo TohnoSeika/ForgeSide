@@ -5,7 +5,7 @@ namespace ForgeSide;
 /// <summary>ForgeSide 配置模型 —— JSON 序列化持久化</summary>
 public class AppSettings
 {
-    public bool   IsDarkMode       { get; set; } = false;
+    public bool   IsDarkMode       { get; set; } = true;
     public bool   ProxyEnabled     { get; set; } = false;
     public string ProxyUrl         { get; set; } = "http://127.0.0.1:7897";
     public string FileManager      { get; set; } = "explorer";  // explorer | xyplorer | totalcmd | dopus | custom
