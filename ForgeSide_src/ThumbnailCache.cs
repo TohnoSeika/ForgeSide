@@ -299,6 +299,77 @@ public class ThumbnailCache : IDisposable
         }
     }
 
+    /// <summary>
+    /// 单独收一张图进缓存（自动刷新用）。写法跟 ScanFolders 里那段一样，
+    /// 只是不做全目录遍历——来一张新图没道理把几万张再摸一遍
+    /// </summary>
+    public GalleryInsertResult InsertFile(string filePath, string folder)
+    {
+        lock (_db)
+        {
+            try
+            {
+                var fi = new FileInfo(filePath);
+                if (!fi.Exists) return GalleryInsertResult.NotReady;
+
+                string mod = fi.LastWriteTimeUtc.ToString("O");
+                using (var check = _conn.CreateCommand())
+                {
+                    check.CommandText = "SELECT modified FROM gallery_files WHERE file_path = @p";
+                    check.Parameters.AddWithValue("@p", filePath);
+                    if (check.ExecuteScalar() as string == mod) return GalleryInsertResult.Unchanged;
+                }
+
+                // 尺寸读不出来就说明文件还没写完（Created 比写入快一步）。
+                // 这时候**不能**存一条 0×0 —— JS 那边 width>0 才排版，
+                // 存进去就是一张永远不出现的幽灵图
+                int w, h;
+                try
+                {
+                    using var img = Image.FromFile(filePath);
+                    w = img.Width; h = img.Height;
+                }
+                catch { return GalleryInsertResult.NotReady; }
+
+                using var upsert = _conn.CreateCommand();
+                upsert.CommandText = "INSERT OR REPLACE INTO gallery_files VALUES (@p,@n,@f,@m,@w,@h,@s)";
+                upsert.Parameters.AddWithValue("@p", filePath);
+                upsert.Parameters.AddWithValue("@n", fi.Name);
+                upsert.Parameters.AddWithValue("@f", folder);
+                upsert.Parameters.AddWithValue("@m", mod);
+                upsert.Parameters.AddWithValue("@w", w);
+                upsert.Parameters.AddWithValue("@h", h);
+                upsert.Parameters.AddWithValue("@s", DateTime.UtcNow.ToString("O"));
+                upsert.ExecuteNonQuery();
+                return GalleryInsertResult.Added;
+            }
+            catch { return GalleryInsertResult.NotReady; }
+        }
+    }
+
+    /// <summary>原图没了：画廊记录和它那几档缩略图一起丢掉，不留占位</summary>
+    public void RemoveFile(string filePath)
+    {
+        lock (_db)
+        {
+            try
+            {
+                using var cmd = _conn.CreateCommand();
+                cmd.CommandText = """
+                    DELETE FROM gallery_files WHERE file_path = @p;
+                    DELETE FROM thumb_data    WHERE source_path = @p;
+                    """;
+                cmd.Parameters.AddWithValue("@p", filePath);
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                // 删不掉就留着：LoadCachedGallery 自己会跳过不存在的文件，
+                // 界面上看不见它，下次全量扫描再清
+            }
+        }
+    }
+
     public void InvalidateFolder(string folder)
     {
         lock (_db)
@@ -362,4 +433,17 @@ public class ThumbnailCache : IDisposable
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
+}
+
+/// <summary>单张图收进缓存的结果。三种情况调用方的处理完全不一样，所以不能只回 bool</summary>
+public enum GalleryInsertResult
+{
+    /// <summary>收进去了（新图，或者原图被覆盖过）</summary>
+    Added,
+
+    /// <summary>缓存里已经是最新的，什么都不用做</summary>
+    Unchanged,
+
+    /// <summary>文件没了 / 还没写完 / 读不出来，过一会儿再来</summary>
+    NotReady,
 }

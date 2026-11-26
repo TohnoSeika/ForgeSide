@@ -121,6 +121,7 @@
   }
   .tab-bar { display: flex; gap: 6px; }
   .tab-btn {
+    position: relative;            /* 给「有新图」的小点留个落脚处 */
     padding: 7px 20px; border: none; background: transparent;
     border-radius: var(--radius-pill); font-size: 12.5px;
     font-family: var(--font); color: var(--text-secondary);
@@ -128,6 +129,15 @@
   }
   .tab-btn:hover { color: var(--text); background: var(--border-light); }
   .tab-btn.active { color: var(--accent); background: var(--accent-soft); font-weight: 510; box-shadow: 0 2px 8px var(--accent-glow); }
+
+  /* 图库进了新图，但用户正在别处、或者正翻着看到一半——
+     这时候重排只会把人家的位置搅乱。留一个小点在页签上，等他自己过来 */
+  .tab-btn.has-new::after {
+    content: ''; position: absolute; top: 5px; right: 7px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
 
   .status-group { margin-left: auto; display: flex; align-items: center; gap: 8px; }
   .status-indicator {
@@ -819,7 +829,7 @@
 
 <div class="titlebar" id="titlebar">
   <div class="logo"><img src="" alt="" style="width:100%;height:100%;object-fit:contain;"></div>
-  <h1>ForgeSide V1.5</h1>
+  <h1>ForgeSide V1.5.1</h1>
   <span class="env-tag" data-i18n="home.env_tag">NEO 已识别</span>
   <div class="win-ctrls">
     <button class="win-btn" onclick="bridge('minimize')" data-i18n-title="win.minimize" title="最小化">
@@ -1128,7 +1138,7 @@
       <div class="about-row">
         <span class="about-icon">✦</span>
         <span class="about-title">ForgeSide</span>
-        <span class="about-version">V1.5</span>
+        <span class="about-version">V1.5.1</span>
       </div>
       <div class="about-line" data-i18n="about.free">本软件为免费软件，不会收取任何费用</div>
       <div class="about-line"><span data-i18n="about.dev">Developed by</span> <a href="https://space.bilibili.com/14816" class="about-link">Tohno Seika</a><a class="github-icon" href="https://github.com/TohnoSeika" title="GitHub"></a></div>
@@ -2161,7 +2171,11 @@
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       activeTab = parseInt(btn.dataset.tab);
       if (activeTab === 0) cacheBannerSize();
-      if (activeTab === 2) setTimeout(loadGallery, 50);
+      if (activeTab === 2) {
+        clearGalleryNew();
+        setTimeout(loadGallery, 50);
+        scanGalleryInBackground();
+      }
     });
   });
   let activeTab = 0;
@@ -2859,9 +2873,12 @@
     if (galleryImages.length > 0) rebuildRows();
   }
 
+  var _galleryLastJson = '';   // 上次拿到的完整列表，用来判断增量扫描有没有带出新东西
+
   function loadGallery() {
     try {
       var json = chrome.webview.hostObjects.sync.forgeSide.ScanGallery();
+      _galleryLastJson = json;
       var data = JSON.parse(json);
       galleryImages = data.images || [];
       rebuildRows();
@@ -2873,6 +2890,47 @@
     // 把内存缓存丢掉，让已经建好的行重新取一次真的缩略图
     _thumbSrcCache.clear();
     if (activeTab === 2 && galleryImages.length > 0) rebuildRows();
+  }
+
+  // C# 回调：输出目录里多了或少了图（NEO 一边出图，这边一边收到）
+  function forgeSide_onGalleryChanged() {
+    if (galleryIsWatching()) { loadGallery(); return; }
+    markGalleryNew();
+  }
+
+  /// 用户正看着图库、没在搜索、也没往下翻——这时候重排不会打断他。
+  /// 翻到一半还硬要重排的话，屏幕上那几张会突然换位置，很烦人的
+  function galleryIsWatching() {
+    if (activeTab !== 2) return false;
+    var search = document.getElementById('gallerySearch');
+    if (search && search.value.trim() !== '') return false;
+    var grid = document.getElementById('galleryGrid');
+    return !grid || grid.scrollTop <= 8;
+  }
+
+  function markGalleryNew() {
+    var btn = document.querySelector('.tab-btn[data-tab="2"]');
+    if (btn) btn.classList.add('has-new');
+  }
+
+  function clearGalleryNew() {
+    var btn = document.querySelector('.tab-btn[data-tab="2"]');
+    if (btn) btn.classList.remove('has-new');
+  }
+
+  /// 切到图库页时补一次增量扫描。watcher 只在 NEO 跑着的时候活着，
+  /// 手动丢进输出目录的图、NEO 没启动时出的图，全靠这一手兜住。
+  /// 限流——来回点页签的时候没必要反复遍历整个目录
+  var _lastGalleryScan = 0;
+  function scanGalleryInBackground() {
+    var now = Date.now();
+    if (now - _lastGalleryScan < 5000) return;
+    _lastGalleryScan = now;
+
+    forgeSideLongTask('scanGalleryIncremental').then(function(json) {
+      if (activeTab !== 2 || json === _galleryLastJson) return;
+      if (galleryIsWatching()) loadGallery(); else markGalleryNew();
+    }).catch(function() { /* 扫不动就算了，下次切页再说 */ });
   }
 
   // ═══ 预计算行分布 + 两端对齐缩放（纯算术，不碰 DOM）═══

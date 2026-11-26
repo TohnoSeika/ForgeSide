@@ -9,7 +9,7 @@
     <ApplicationIcon>ico.ico</ApplicationIcon>
     <AssemblyName>ForgeSide</AssemblyName>
     <RootNamespace>ForgeSide</RootNamespace>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <Product>ForgeSide</Product>
     <Copyright>Copyright (c) 2026 Tohno Seika</Copyright>
     <!-- 发布配置见 publish 命令 -->

@@ -73,13 +73,10 @@ public class MainForm : Form
             lang = Lang.DetectSystemLanguage();
         Lang.SetLanguage(lang);
 
-        // 确保输出目录存在（兼容第三方包和官方版）
+        // 确保输出目录存在。「在哪儿」由 NeoOutputFolder 统一回答——
+        // 图库、输出监控和这里读的都是同一份答案
         string neoRoot = FindNeoRoot();
-        string outputDir;
-        if (Directory.Exists(Path.Combine(neoRoot, "webui")))
-            outputDir = Path.Combine(neoRoot, "webui", "output");
-        else
-            outputDir = Path.Combine(neoRoot, "outputs");
+        string outputDir = NeoOutputFolder.ParentOf(neoRoot);
         // 建不出目录（只读位置 / 无权限）也要让用户看到原因，
         // 而不是双击图标之后什么都没有发生
         try
@@ -136,12 +133,17 @@ public class MainForm : Form
             DisarmStopWatchdog();
             EnterNeoState(NeoState.Idle);
         });
-        _procMgr.OnImageGenerated += () =>
+        _procMgr.OnImageGenerated += path =>
         {
             if (_settings.NotificationSound)
                 PlayNotificationSound();
             SafeInvoke(() => PushConsole(Lang.T("console.img_generated"), "info"));
+            QueueGalleryCapture(path);
         };
+        _procMgr.OnImageRemoved += QueueGalleryRemoval;
+        // 监控自己漏了事件（一次出图太密，内部缓冲溢出）。Windows 不会补发，
+        // 只能整目录补扫一次，否则那几张图会安安静静地缺席
+        _procMgr.OnWatcherOverflow += ScheduleGalleryRescan;
 
         Resize += (_, _) =>
         {
@@ -914,7 +916,7 @@ public class MainForm : Form
         bool isThirdParty = Directory.Exists(Path.Combine(neoRoot, "webui"));
         string rel = name switch
         {
-            "output" => isThirdParty ? "webui/output/images" : "outputs",
+            "output" => NeoOutputFolder.Find(neoRoot),   // 绝对路径传进去同样管用
             "models" => isThirdParty ? "webui/models/Stable-diffusion" : "models/Stable-diffusion",
             "lora" => isThirdParty ? "webui/models/Lora" : "models/Lora",
             "embeddings" => isThirdParty ? "webui/embeddings" : "embeddings",
@@ -1107,7 +1109,7 @@ public class MainForm : Form
         // 这个 List，快照必须在这儿拍。丢到后台再读的话，用户正好在设置页加文件夹，
         // 那就是一次并发读写。
         // （刷新单个文件夹不用快照——它只认传进来的那一个路径，不碰这个列表）
-        var folders = taskName is "searchGallery" or "refreshGallery"
+        var folders = taskName is "searchGallery" or "refreshGallery" or "scanGalleryIncremental"
             ? ActiveGalleryFolders
             : null;
 
@@ -1119,6 +1121,7 @@ public class MainForm : Form
             "searchGallery"        => () => SearchGalleryIn(folders!, arg),
             "refreshGallery"       => () => { RefreshGalleryIn(folders!); return "{}"; },
             "refreshGalleryFolder" => () => { RefreshGalleryFolder(arg); return "{}"; },
+            "scanGalleryIncremental" => () => ScanGalleryIncremental(folders!),
             _                      => () => JsonSerializer.Serialize(new { error = Lang.T("task.unknown_long", taskName) }),
         };
 
@@ -1192,12 +1195,9 @@ public class MainForm : Form
     {
         get
         {
-            string neoRoot = FindNeoRoot();
-            string defaultFolder;
-            if (Directory.Exists(Path.Combine(neoRoot, "webui")))
-                defaultFolder = Path.GetFullPath(Path.Combine(neoRoot, "webui", "output", "images"));
-            else
-                defaultFolder = Path.GetFullPath(Path.Combine(neoRoot, "outputs"));
+            // 默认目录交给 NeoOutputFolder 算——输出监控那边问的是同一个函数。
+            // 两处各写一份的话，改了包结构判定之后总有一边会跟不上
+            string defaultFolder = NeoOutputFolder.Find(FindNeoRoot());
             // 用户添加的文件夹照单全收——模型和出图放在别的盘是常态。
             // 以前这里用 StartsWith(neoRoot) 过滤，结果是界面回"添加成功"却永远扫不到，
             // 设置项还一直躺在 json 里，用户根本没有线索
@@ -1259,6 +1259,185 @@ public class MainForm : Form
                 PreGenerateThumbnails(JsonSerializer.Serialize(paths));
         }
     }
+
+    // ═══════════════════════════════════════
+    //  图库自动刷新
+    // ═══════════════════════════════════════
+
+    // watcher 的事件落在后台线程上，而且一次出四张图就一口气来四条。
+    // 所以先攒着，隔一小会儿一起处理：一趟刷新就能带进整批，
+    // 也不会每来一张就把图库重排一次
+    private const int MaxGalleryAttempts = 6;
+
+    private readonly object _galleryGate = new();
+    private readonly Dictionary<string, int> _galleryPending = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _galleryRemoved = new(StringComparer.OrdinalIgnoreCase);
+    private int _galleryFlushTicket;
+
+    /// <summary>
+    /// 收进缓存时记在哪个 folder 名下。必须和图库默认目录同一个字符串——
+    /// LoadCachedGallery 是按 folder 精确匹配的，差一个斜杠就等于两张表
+    /// </summary>
+    private string GalleryWatchFolder
+        => _procMgr.WatchedOutputDir ?? NeoOutputFolder.Find(FindNeoRoot());
+
+    /// <summary>攒一张新图，等一小会儿再一起收进缓存</summary>
+    private void QueueGalleryCapture(string path)
+    {
+        if (_thumbCache == null) return;   // 缓存没起来，收了也没地方记
+        lock (_galleryGate)
+        {
+            _galleryRemoved.Remove(path);  // 同名文件又被写回来了
+            _galleryPending[path] = 0;
+        }
+        ScheduleGalleryFlush(400);
+    }
+
+    /// <summary>图没了。删除同样攒着——批量删一个目录的时候不会每张都刷一次界面</summary>
+    private void QueueGalleryRemoval(string path)
+    {
+        lock (_galleryGate)
+        {
+            _galleryPending.Remove(path);
+            _galleryRemoved.Add(path);
+        }
+        ScheduleGalleryFlush(400);
+    }
+
+    /// <summary>
+    /// 排一次刷新。后到的排程会顶掉前面还没跑的那次——
+    /// 每来一张图就留一个后台任务太浪费，最新那次反正会把待处理的都带上
+    /// </summary>
+    private void ScheduleGalleryFlush(int delayMs)
+    {
+        int ticket = Interlocked.Increment(ref _galleryFlushTicket);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(delayMs).ConfigureAwait(false);
+            if (Volatile.Read(ref _galleryFlushTicket) != ticket) return;
+            FlushGalleryQueue();
+        });
+    }
+
+    /// <summary>把攒下的增删一起落到缓存里，然后告诉界面</summary>
+    private void FlushGalleryQueue()
+    {
+        Dictionary<string, int> batch;
+        List<string> removed;
+        lock (_galleryGate)
+        {
+            if (_galleryPending.Count == 0 && _galleryRemoved.Count == 0) return;
+            batch = new Dictionary<string, int>(_galleryPending);
+            removed = _galleryRemoved.ToList();
+            _galleryPending.Clear();
+            _galleryRemoved.Clear();
+        }
+
+        bool changed = false, retryLater = false;
+        var added = new List<string>();
+
+        foreach (string path in removed)
+        {
+            _thumbCache?.RemoveFile(path);
+            changed = true;
+        }
+
+        foreach (var (path, attempts) in batch)
+        {
+            // 第一次多等一会儿（Created 常常赶在写入之前），重试时就不必了——
+            // 上一轮已经确认过它还没写完
+            if (!WaitUntilWritten(path, attempts == 0 ? 400 : 1200))
+            {
+                if (File.Exists(path) && attempts < MaxGalleryAttempts)
+                {
+                    RequeueGalleryFile(path, attempts + 1);
+                    retryLater = true;
+                }
+                continue;   // 文件已经不在：多半是出图失败留下的临时件，不当回事
+            }
+
+            switch (_thumbCache?.InsertFile(path, GalleryWatchFolder))
+            {
+                case GalleryInsertResult.Added:
+                    added.Add(path);
+                    changed = true;
+                    break;
+
+                case GalleryInsertResult.NotReady when attempts < MaxGalleryAttempts:
+                    RequeueGalleryFile(path, attempts + 1);
+                    retryLater = true;
+                    break;
+            }
+        }
+
+        if (changed) NotifyGalleryChanged();
+
+        // 缩略图在后台慢慢出。出完了 C# 会再喊一次 onThumbnailsReady，
+        // 那时候已经建好的行会换成真的缩略图
+        if (added.Count > 0) PreGenerateThumbnails(JsonSerializer.Serialize(added));
+
+        if (retryLater) ScheduleGalleryFlush(1200);
+    }
+
+    private void RequeueGalleryFile(string path, int attempts)
+    {
+        lock (_galleryGate) { _galleryPending[path] = attempts; }
+    }
+
+    /// <summary>
+    /// 等文件写完。Created 在文件刚建好的那一瞬间就会来，这时候 PNG 只有几百字节，
+    /// 拿去解码只会失败。做法是隔一会儿看一眼大小：连续两次一样、
+    /// 而且第一次观察已经过去一阵子，就当它写完了
+    /// </summary>
+    private static bool WaitUntilWritten(string path, int settleMs)
+    {
+        var info = new FileInfo(path);
+        long lastSize = -1;
+        int waited = 0;
+
+        while (waited <= 3000)
+        {
+            info.Refresh();
+            if (!info.Exists) return false;
+
+            if (waited >= settleMs && info.Length > 0 && info.Length == lastSize)
+                return true;
+
+            lastSize = info.Length;
+            Thread.Sleep(150);
+            waited += 150;
+        }
+        return false;
+    }
+
+    /// <summary>图库有增删了，让界面自己决定是立刻重排还是只挂个角标</summary>
+    private void NotifyGalleryChanged() =>
+        SafeInvoke(() => _webView?.CoreWebView2?.ExecuteScriptAsync("forgeSide_onGalleryChanged()"));
+
+    /// <summary>
+    /// watcher 漏事件之后的补救：整目录补扫一次。快照要在 UI 线程上拍——
+    /// 扫描在后台跑的时候，用户可能正在设置页改文件夹
+    /// </summary>
+    private void ScheduleGalleryRescan()
+    {
+        SafeInvoke(() =>
+        {
+            List<string> folders = ActiveGalleryFolders;
+            Task.Run(() =>
+            {
+                _thumbCache?.ScanFolders(folders);
+                NotifyGalleryChanged();
+            });
+        });
+    }
+
+    /// <summary>
+    /// 切到图库页时补一次增量扫描。watcher 只在 NEO 跑着的时候活着，
+    /// 手动丢进输出目录的图、或者 NEO 没启动时出的图，就靠这一手兜住。
+    /// 返回完整列表，JS 拿去跟自己手上的比，没变就不重排
+    /// </summary>
+    private string ScanGalleryIncremental(List<string> folders)
+        => _thumbCache?.ScanFolders(folders) ?? "{\"images\":[]}";
 
     /// <summary>搜索图库（按 prompt 文本），返回匹配图片 + 元数据 JSON</summary>
     public string SearchGallery(string query) => SearchGalleryIn(ActiveGalleryFolders, query);
@@ -1771,6 +1950,8 @@ public class MainForm : Form
             if (checkoutResult.exitCode != 0)
                 return Failed(Lang.T("console.checkout_fail", checkoutResult.error));
             PushConsole(Lang.T("console.upgrade_done", tagName), "info");
+            // 切过版本之后第一次启动要重跑依赖检查，慢是正常的——先说清楚，别让人以为是卡住了
+            PushConsole(Lang.T("console.upgrade_slow_hint"), "");
 
             return JsonSerializer.Serialize(new { success = true });
         }
@@ -1876,7 +2057,7 @@ public class MainForm : Form
                 };
             }
             using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(3) };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("ForgeSide/1.5");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ForgeSide/1.5.1");
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var response = client.GetAsync(url).Result;
             sw.Stop();

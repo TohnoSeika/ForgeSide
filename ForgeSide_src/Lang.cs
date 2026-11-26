@@ -13,7 +13,7 @@ public static class Lang
     {
         ["zh-CN"] = new()
         {
-            ["window.title"]          = "ForgeSide V1.5",
+            ["window.title"]          = "ForgeSide V1.5.1",
             ["close_dialog.title"]    = "ForgeSide — 确认关闭",
             ["close_dialog.msg"]      = "Forge NEO 进程正在运行中，请先在控制台点击「终止NEO」按钮结束进程！",
             ["close_dialog.force"]    = "强制停止",
@@ -55,6 +55,7 @@ public static class Lang
             ["console.switching"]     = "[ForgeSide] 正在切换到 {0} …",
             ["console.checkout_fail"] = "切换版本失败：{0}",
             ["console.upgrade_done"]  = "[ForgeSide] ✅ 已切换到 {0}，升级完成！请重启 Forge NEO 使新版本生效。",
+            ["console.upgrade_slow_hint"] = "[ForgeSide] 提示：下次启动 NEO 会重新检查依赖，需要装包时会比平时慢一些。",
             ["console.upgrade_err"]   = "升级出错：{0}",
             ["console.upgrade_neo_running"] = "Forge NEO 正在运行中，请先在控制台点「终止 NEO」再升级",
             ["console.upgrade_repo_not_found"] = "在 {0} 里没找到 Forge NEO 的 Git 仓库（认的是 origin 指向 {1} 的那个），无法用这种方式升级",
@@ -90,7 +91,7 @@ public static class Lang
 
         ["zh-TW"] = new()
         {
-            ["window.title"]          = "ForgeSide V1.5",
+            ["window.title"]          = "ForgeSide V1.5.1",
             ["close_dialog.title"]    = "ForgeSide — 確認關閉",
             ["close_dialog.msg"]      = "Forge NEO 程序正在執行中，請先在控制台點擊「終止NEO」按鈕結束程序！",
             ["close_dialog.force"]    = "強制停止",
@@ -132,6 +133,7 @@ public static class Lang
             ["console.switching"]     = "[ForgeSide] 正在切換到 {0} …",
             ["console.checkout_fail"] = "切換版本失敗：{0}",
             ["console.upgrade_done"]  = "[ForgeSide] ✅ 已切換到 {0}，升級完成！請重啟 Forge NEO 使新版本生效。",
+            ["console.upgrade_slow_hint"] = "[ForgeSide] 提醒：下次啟動 NEO 會重新檢查相依性，需要裝套件時會比平時慢一些。",
             ["console.upgrade_err"]   = "升級出錯：{0}",
             ["console.upgrade_neo_running"] = "Forge NEO 正在執行中，請先在主控台點「終止 NEO」再升級",
             ["console.upgrade_repo_not_found"] = "在 {0} 裡沒找到 Forge NEO 的 Git 倉庫（認的是 origin 指向 {1} 的那個），無法用這種方式升級",
@@ -167,7 +169,7 @@ public static class Lang
 
         ["en"] = new()
         {
-            ["window.title"]          = "ForgeSide V1.5",
+            ["window.title"]          = "ForgeSide V1.5.1",
             ["close_dialog.title"]    = "ForgeSide — Confirm Close",
             ["close_dialog.msg"]      = "Forge NEO is still running. Please stop it from the Console tab first!",
             ["close_dialog.force"]    = "Force Stop",
@@ -209,6 +211,7 @@ public static class Lang
             ["console.switching"]     = "[ForgeSide] Switching to {0} …",
             ["console.checkout_fail"] = "Failed to switch version: {0}",
             ["console.upgrade_done"]  = "[ForgeSide] ✅ Switched to {0}. Please restart Forge NEO for the changes to take effect.",
+            ["console.upgrade_slow_hint"] = "[ForgeSide] Heads-up: the next NEO launch re-checks dependencies and may install packages, so it can take longer than usual.",
             ["console.upgrade_err"]   = "Upgrade error: {0}",
             ["console.upgrade_neo_running"] = "Forge NEO is running — stop it from the console first, then upgrade",
             ["console.upgrade_repo_not_found"] = "No Forge NEO Git repository found in {0} (looking for the one whose origin points at {1}), so this upgrade method is unavailable",
@@ -244,7 +247,7 @@ public static class Lang
 
         ["ja"] = new()
         {
-            ["window.title"]          = "ForgeSide V1.5",
+            ["window.title"]          = "ForgeSide V1.5.1",
             ["close_dialog.title"]    = "ForgeSide — 終了確認",
             ["close_dialog.msg"]      = "Forge NEO が実行中です。先にコンソールタブで「NEO停止」ボタンをクリックしてください！",
             ["close_dialog.force"]    = "強制終了",
@@ -286,6 +289,7 @@ public static class Lang
             ["console.switching"]     = "[ForgeSide] {0} に切り替え中…",
             ["console.checkout_fail"] = "バージョン切替に失敗しました: {0}",
             ["console.upgrade_done"]  = "[ForgeSide] ✅ {0} に切り替えました。変更を反映するには Forge NEO を再起動してください。",
+            ["console.upgrade_slow_hint"] = "[ForgeSide] お知らせ：次回の NEO 起動時に依存関係を再確認します。パッケージのインストールが入ると、いつもより時間がかかります。",
             ["console.upgrade_err"]   = "アップグレードエラー: {0}",
             ["console.upgrade_neo_running"] = "Forge NEO が実行中です。先にコンソールで「NEO停止」を押してからアップグレードしてください",
             ["console.upgrade_repo_not_found"] = "{0} に Forge NEO の Git リポジトリが見つかりません（origin が {1} を指すもの）。この方法ではアップグレードできません",

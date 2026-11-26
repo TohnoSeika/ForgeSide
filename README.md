@@ -41,7 +41,7 @@ ForgeSide only supports launching and managing <a href="https://github.com/Haomi
 - Copy button on each parameter for quick copying
 
 ### 🗂️ Gallery Browser
-- Automatically scans the Forge NEO output directory for PNG / JPEG / WebP images
+- Automatically scans the Forge NEO output directory for PNG / JPEG / WebP images; new ones appear at the top as NEO writes them, with no manual refresh
 - Three thumbnail sizes (small/medium/large), generated asynchronously in the background
 - Multi-tag search (comma-separated, order-independent)
 - Double-click to open in default image viewer
@@ -62,6 +62,7 @@ ForgeSide only supports launching and managing <a href="https://github.com/Haomi
 
 ### 🌐 Proxy Support
 - Built-in HTTP proxy settings with toggle and custom address
+- Falls back to a direct connection when the proxy app isn't running, so a dead address can't hold up startup
 - One-click connectivity test for Google and Hugging Face
 
 ### 🎵 Notification Sound
@@ -171,6 +172,14 @@ The `publish` folder is ready to distribute. The .NET 10 Desktop Runtime and Web
 
 
 ## 📋 Changelog
+
+### V1.5.1
+
+- 🖼️ The gallery refreshes itself: images NEO writes appear at the top on their own, no trip to Settings needed. It updates in place while you're browsing, shows a small dot on the Gallery tab while you're elsewhere, and runs an incremental scan when you switch back — so files you dropped in by hand are picked up too
+- 🌐 The proxy toggle no longer routes everything unconditionally: the proxy port is probed before NEO starts, and when nothing is listening that launch connects directly — the console reports which path it took
+- 🐛 Fixed the flood of "connection refused" errors during NEO startup when the proxy app wasn't running yet, which also broke package installs that would have worked fine against a direct mirror
+- ⏱️ NEO is launched with `--log-startup`, so every startup stage reports its own timing in the console — when a launch is slow, the culprit is right there
+- 🐛 Fixed NEO failing to start when it asks for "Press Enter" after a version change, since ForgeSide has no console to press it in; the upgrade now also warns that the next launch re-checks dependencies
 
 ### V1.5
 

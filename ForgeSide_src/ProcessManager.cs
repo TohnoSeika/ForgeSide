@@ -80,7 +80,21 @@ public partial class ProcessManager : IDisposable
 
     public event Action<string>? OnOutput;
     public event Action? OnExited;
-    public event Action? OnImageGenerated;
+
+    /// <summary>出图目录里冒出来一张图（参数是完整路径，而且文件还不一定写完）</summary>
+    public event Action<string>? OnImageGenerated;
+
+    /// <summary>出图目录里少了一张图</summary>
+    public event Action<string>? OnImageRemoved;
+
+    /// <summary>
+    /// 监控自己漏事件了（内部缓冲溢出）。这时候只能整目录补扫一次，
+    /// 否则那几张图会安安静静地缺席，连个说法都没有
+    /// </summary>
+    public event Action? OnWatcherOverflow;
+
+    /// <summary>当前正在监控的出图目录；没在监控时为 null</summary>
+    public string? WatchedOutputDir { get; private set; }
 
     /// <summary>
     /// 启动 Forge NEO。
@@ -255,6 +269,7 @@ public partial class ProcessManager : IDisposable
             WorkingDirectory = ctx.WebuiDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
@@ -304,6 +319,7 @@ public partial class ProcessManager : IDisposable
             _neoProcess.Start();
             _neoProcess.BeginOutputReadLine();
             _neoProcess.BeginErrorReadLine();
+            AnswerStartupPrompt(_neoProcess);
         }
         catch
         {
@@ -318,7 +334,9 @@ public partial class ProcessManager : IDisposable
     /// <summary>构建 launch.py 命令行参数</summary>
     private static string BuildLaunchArgs(ForgePackage pkg, string launchMode)
     {
-        string args = "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory";
+        // --log-startup 让 NEO 把启动各阶段的耗时打进控制台。
+        // 偶尔会有"这次怎么这么慢"的时候，有它在就不用猜是卡在哪一步
+        string args = "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory --log-startup";
 
         // 第三方包加额外的模型路径
         if (pkg == ForgePackage.ThirdParty)
@@ -357,8 +375,8 @@ public partial class ProcessManager : IDisposable
         // 参数是走环境变量进去的——webui.bat 只写 launch.py %*，真正把它塞进
         // sys.argv 的是包里的 modules/paths_internal.py
         string extraArgs = ctx.Package == ForgePackage.Official
-            ? "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory"
-            : "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory ^\r\n"
+            ? "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory --log-startup"
+            : "--theme day --port 7869 --cuda-malloc --cuda-stream --pin-shared-memory --log-startup ^\r\n"
                 + "\t--ckpt-dirs D:/sd-models/Checkpoint ^\r\n"
                 + "\t--ckpt-dirs D:/sd-models/diffusion_model ^\r\n"
                 + "\t--text-encoder-dirs D:/sd-models/text_encoder ^\r\n"
@@ -426,6 +444,7 @@ public partial class ProcessManager : IDisposable
             WorkingDirectory = workDir,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
@@ -455,6 +474,7 @@ public partial class ProcessManager : IDisposable
             _neoProcess.Start();
             _neoProcess.BeginOutputReadLine();
             _neoProcess.BeginErrorReadLine();
+            AnswerStartupPrompt(_neoProcess);
         }
         catch
         {
@@ -600,6 +620,31 @@ public partial class ProcessManager : IDisposable
         return "";
     }
 
+    /// <summary>
+    /// 替 Minagi 按一下 NEO 启动时要按的那个回车。
+    ///
+    /// modules/launch_utils.py 的 verify_version() 在版本断代时（config.json 里的
+    /// VERSION_UID 和代码里的常量对不上）会打印一段警告，然后
+    /// input("Press Enter to Continue...") 等人按回车。ForgeSide 是 WinExe，
+    /// 没有控制台，子进程原本拿不到 stdin——没人能按，它当场抛异常，启动就没了。
+    ///
+    /// 所以给一根能读的 stdin：写一个换行再把写端关掉。
+    /// 第一次 input() 拿到换行，正常往下走；之后真有别的 input()，会立刻 EOF
+    /// 而不是永远挂着——报错总比界面上一片安静好。
+    /// </summary>
+    private static void AnswerStartupPrompt(Process process)
+    {
+        try
+        {
+            process.StandardInput.WriteLine();
+            process.StandardInput.Close();
+        }
+        catch
+        {
+            // 进程已经退出、或者 stdin 根本写不进去，都不该连累启动本身
+        }
+    }
+
     // ═══════════════════════════════════════
     //  输出目录监控
     // ═══════════════════════════════════════
@@ -609,19 +654,10 @@ public partial class ProcessManager : IDisposable
     {
         StopOutputWatcher();
 
-        // 自适应不同包结构的 output 目录
-        string[] candidates = [
-            Path.Combine(neoDir, "webui", "output", "images"),
-            Path.Combine(neoDir, "core",  "output", "images"),
-            Path.Combine(neoDir, "outputs"),
-            Path.Combine(neoDir, "output"),
-        ];
-        string outputDir = "";
-        foreach (var c in candidates)
-        {
-            if (Directory.Exists(c)) { outputDir = c; break; }
-        }
-        if (string.IsNullOrEmpty(outputDir)) return;
+        // 「输出目录在哪」只能问 NeoOutputFolder——图库那边用的是同一个答案。
+        // 各写一份的下场是监控盯着一处、图库读着另一处，出了图谁也不知道
+        string outputDir = NeoOutputFolder.Find(neoDir);
+        if (!Directory.Exists(outputDir)) return;
 
         _outputWatcher = new FileSystemWatcher(outputDir)
         {
@@ -630,18 +666,24 @@ public partial class ProcessManager : IDisposable
             Filter = "*.*",
             IncludeSubdirectories = true,   // Forge 默认按日期分目录存图
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+            // 一次出四张、八张的时候事件来得又密又匀，默认缓冲不够用。
+            // 溢出之后 Windows 不会补发，只能靠 Error 事件兜底重扫
+            InternalBufferSize = 64 * 1024,
         };
-        _outputWatcher.Created += (_, e) =>
-        {
-            if (IsImageFile(e.Name)) OnImageGenerated?.Invoke();
-        };
-        _outputWatcher.Renamed += (_, e) =>
-        {
-            if (IsImageFile(e.Name)) OnImageGenerated?.Invoke();
-        };
+        _outputWatcher.Created += (_, e) => RaiseIfImage(e.FullPath, OnImageGenerated);
+        _outputWatcher.Renamed += (_, e) => RaiseIfImage(e.FullPath, OnImageGenerated);
+        _outputWatcher.Deleted += (_, e) => RaiseIfImage(e.FullPath, OnImageRemoved);
+        _outputWatcher.Error   += (_, _) => OnWatcherOverflow?.Invoke();
 
         // 事件挂完再开始监听，否则第一个事件可能落在还没人听的窗口里
         _outputWatcher.EnableRaisingEvents = true;
+        WatchedOutputDir = outputDir;
+    }
+
+    /// <summary>不是图片就当没看见。路径判断走 IsImageFile，扩展名大小写都认</summary>
+    private static void RaiseIfImage(string fullPath, Action<string>? notify)
+    {
+        if (IsImageFile(fullPath)) notify?.Invoke(fullPath);
     }
 
     private void StopOutputWatcher()
@@ -652,6 +694,7 @@ public partial class ProcessManager : IDisposable
             _outputWatcher.Dispose();
             _outputWatcher = null;
         }
+        WatchedOutputDir = null;
     }
 
     /// <summary>
