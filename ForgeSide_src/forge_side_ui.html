@@ -2976,9 +2976,13 @@
     var valid = galleryImages.filter(function(img) { return img.width > 0 && img.height > 0; });
 
     // 第一步：分配到行（基于基准行高）
+    // 横图在这里按「和竖图一样高的方块」占位，一行就比竖图少一张：
+    // 大中小分别是 1/2/3 张，不会孤零零一张横图把整行撑满。
+    // 只是分行时这么算——真正铺满宽度还是按原图比例来
     var rawRows = [], cur = [], curW = 0;
     for (var i = 0; i < valid.length; i++) {
-      var w = baseH * (valid[i].width / valid[i].height);
+      var aspect = valid[i].width / valid[i].height;
+      var w = baseH * Math.min(aspect, 1);
       if (cur.length > 0 && curW + w + GAP * (cur.length) > cw) { rawRows.push(cur); cur = []; curW = 0; }
       cur.push(valid[i]); curW += w;
     }
