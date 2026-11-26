@@ -6,7 +6,9 @@ using System.Text.Json;
 namespace ForgeSide;
 
 /// <summary>
-/// 缩略图缓存——SQLite BLOB 单文件存储，大/中/小三档，返回 Base64 Data URI。
+/// 缩略图缓存——SQLite BLOB 单文件存储，返回 Base64 Data URI。
+/// 库里只存大图那一档，中/小是从它现缩出来的：同一张原图只需要解码一次，
+/// 也不会为了两个不常看的尺寸多占两份空间。
 /// 桃华为 Minagi 重写的精致版本 ✿
 /// </summary>
 public class ThumbnailCache : IDisposable
@@ -31,15 +33,40 @@ public class ThumbnailCache : IDisposable
         ["large"]  = 560,
     };
 
-    public ThumbnailCache(string baseDir)
+    /// <summary>真正落盘的那一档。另外两档每次从它缩出来，不写库</summary>
+    private const string StoredSizeKey = "large";
+
+    /// <summary>缩略图库的默认上限。一万张左右的图库也不会再无限长下去</summary>
+    public const long DefaultBudgetBytes = 100L * 1024 * 1024;
+
+    /// <summary>淘汰时多腾一点，回到 85% 左右——不然每来一张就要再淘汰一次</summary>
+    private const double PruneTargetRatio = 0.85;
+
+    private readonly long _budgetBytes;
+
+    // 缩出来的中/小图先放在内存里：换尺寸、滚动回来都要重新排版，
+    // 每次都从 BLOB 解码一遍大图太浪费。上限按条数算，约十来 MB
+    private readonly Dictionary<string, byte[]> _derived = new();
+    private readonly Queue<string> _derivedOrder = new();
+    private const int DerivedCacheLimit = 400;
+
+    private static readonly ImageCodecInfo JpegEncoder =
+        ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+
+    public ThumbnailCache(string baseDir, long budgetBytes = DefaultBudgetBytes)
     {
+        _budgetBytes = budgetBytes;
         _cacheDir = Path.Combine(baseDir, ".thumbcache");
         Directory.CreateDirectory(_cacheDir);
         try { File.SetAttributes(_cacheDir, FileAttributes.Hidden | FileAttributes.Directory); } catch { }
         _conn = new SqliteConnection($"Data Source={Path.Combine(_cacheDir, "thumbs.db")}");
         _conn.Open();
         InitDb();
+        MigrateToSingleSize();
         CleanOrphanJpgFiles();
+
+        // 上次退出时可能正好超了一点点，启动时收一次尾就够了
+        PruneToBudget();
     }
 
     private void InitDb()
@@ -70,6 +97,28 @@ public class ThumbnailCache : IDisposable
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// 从「三档各存一份」迁到「只存大图」。以前生成的中/小行留着不但没用，
+    /// 还会被当成有效缓存直接返回，所以一次性清掉。
+    /// user_version 记一笔，不是每次启动都扫一遍
+    /// </summary>
+    private void MigrateToSingleSize()
+    {
+        using (var version = _conn.CreateCommand())
+        {
+            version.CommandText = "PRAGMA user_version";
+            if (Convert.ToInt32(version.ExecuteScalar()) >= 2) return;
+        }
+
+        using var migrate = _conn.CreateCommand();
+        migrate.CommandText = """
+            DELETE FROM thumb_data WHERE size_key <> @stored;
+            PRAGMA user_version = 2;
+            """;
+        migrate.Parameters.AddWithValue("@stored", StoredSizeKey);
+        migrate.ExecuteNonQuery();
+    }
+
     /// <summary>清理旧版本遗留的 .jpg 缩略图文件</summary>
     private void CleanOrphanJpgFiles()
     {
@@ -83,43 +132,61 @@ public class ThumbnailCache : IDisposable
 
     /// <summary>
     /// 获取缩略图 Base64 Data URI。sizeKey: "small" / "medium" / "large"。
-    /// 缓存命中直接返回，否则生成后存入 BLOB。
+    /// 大图落库；中/小从大图现缩，只留在内存里。
     /// </summary>
     public string GetBase64(string sourcePath, string sizeKey)
     {
         var sourceInfo = new FileInfo(sourcePath);
         if (!sourceInfo.Exists) return "";
 
-        int size = Sizes.TryGetValue(sizeKey, out var s) ? s : Sizes["medium"];
+        int size = Sizes.TryGetValue(sizeKey, out var wanted) ? wanted : Sizes["medium"];
         string sourceModified = sourceInfo.LastWriteTimeUtc.ToString("O");
 
-        string? cached = ReadCachedBlob(sourcePath, sizeKey, sourceModified);
-        if (cached != null) return cached;
+        byte[] stored = LoadStored(sourcePath, sourceModified);
+        if (stored.Length == 0) return "";
+        if (size == Sizes[StoredSizeKey]) return ToDataUri(stored);
+
+        string derivedKey = DerivedKey(sourcePath, sourceModified, size);
+        byte[]? scaled = RecallDerived(derivedKey);
+        if (scaled != null) return ToDataUri(scaled);
 
         // 解码、缩放、编码全在锁外做。它慢得肉眼可见，
         // 占着锁的话后台一跑预生成，UI 线程取缩略图就得排队
-        byte[] jpeg;
-        try { jpeg = GenerateJpegBlob(sourcePath, size); }
+        try { scaled = ResizeToJpeg(stored, size); }
         catch { return ""; }
 
-        SaveBlob(sourcePath, sizeKey, sourceModified, jpeg);
-        return ToDataUri(jpeg);
+        RememberDerived(derivedKey, scaled);
+        return ToDataUri(scaled);
     }
 
-    /// <summary>查缓存。没有、或者原图已经改过，都返回 null</summary>
-    private string? ReadCachedBlob(string sourcePath, string sizeKey, string sourceModified)
+    /// <summary>取库里的那一档；没有或原图改过就现做一张存进去</summary>
+    private byte[] LoadStored(string sourcePath, string sourceModified)
+    {
+        byte[]? cached = ReadStoredBytes(sourcePath, sourceModified);
+        if (cached != null) return cached;
+
+        byte[] jpeg;
+        try { jpeg = ResizeFileToJpeg(sourcePath, Sizes[StoredSizeKey]); }
+        catch { return Array.Empty<byte>(); }
+
+        SaveBlob(sourcePath, StoredSizeKey, sourceModified, jpeg);
+        return jpeg;
+    }
+
+    /// <summary>查库里的那一档。没有、或者原图已经改过，都返回 null</summary>
+    private byte[]? ReadStoredBytes(string sourcePath, string sourceModified)
     {
         lock (_db)
         {
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = "SELECT source_modified, thumb_blob FROM thumb_data WHERE source_path = @p AND size_key = @k";
             cmd.Parameters.AddWithValue("@p", sourcePath);
-            cmd.Parameters.AddWithValue("@k", sizeKey);
+            cmd.Parameters.AddWithValue("@k", StoredSizeKey);
             using var reader = cmd.ExecuteReader();
             if (!reader.Read() || reader.GetString(0) != sourceModified) return null;
 
             byte[] blob = GetBlobBytes(reader, 1);
-            return blob.Length > 0 ? ToDataUri(blob) : null;
+            return blob.Length > 0 ? blob : null;
         }
     }
 
@@ -148,67 +215,179 @@ public class ThumbnailCache : IDisposable
 
     private static string ToDataUri(byte[] jpeg) => "data:image/jpeg;base64," + Convert.ToBase64String(jpeg);
 
-    private static byte[] GenerateJpegBlob(string sourcePath, int size)
+    private static byte[] ResizeFileToJpeg(string sourcePath, int size)
     {
         using var img = Image.FromFile(sourcePath);
+        return ScaleAndEncode(img, size);
+    }
+
+    /// <summary>把已经入库的那张 JPEG 再缩一档，中/小档走这条路</summary>
+    private static byte[] ResizeToJpeg(byte[] sourceJpeg, int size)
+    {
+        using var input = new MemoryStream(sourceJpeg);
+        using var img = Image.FromStream(input);
+        return ScaleAndEncode(img, size);
+    }
+
+    private static byte[] ScaleAndEncode(Image source, int size)
+    {
         int w, h;
-        if (img.Width > img.Height) { w = size; h = (int)(img.Height * (double)size / img.Width); }
-        else { h = size; w = (int)(img.Width * (double)size / img.Height); }
+        if (source.Width > source.Height) { w = size; h = (int)(source.Height * (double)size / source.Width); }
+        else { h = size; w = (int)(source.Width * (double)size / source.Height); }
         if (w < 1) w = 1; if (h < 1) h = 1;
 
         using var thumb = new Bitmap(w, h);
-        using var g = Graphics.FromImage(thumb);
-        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
-        g.DrawImage(img, 0, 0, w, h);
+        using (var g = Graphics.FromImage(thumb))
+        {
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.DrawImage(source, 0, 0, w, h);
+        }
 
         using var ms = new MemoryStream();
-        var jpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
-        var encParams = new EncoderParameters(1);
-        encParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)75);
-        thumb.Save(ms, jpegEncoder, encParams);
+        using var quality = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)75);
+        using var encParams = new EncoderParameters(1);
+        encParams.Param[0] = quality;
+        thumb.Save(ms, JpegEncoder, encParams);
         return ms.ToArray();
     }
 
-    /// <summary>后台批量预生成三档缩略图</summary>
+    // ── 缩出来的中/小图只在内存里待着 ──
+
+    private static string DerivedKey(string sourcePath, string sourceModified, int size)
+        => $"{sourcePath}|{sourceModified}|{size}";
+
+    private byte[]? RecallDerived(string key)
+    {
+        lock (_db) { return _derived.TryGetValue(key, out var bytes) ? bytes : null; }
+    }
+
+    private void RememberDerived(string key, byte[] jpeg)
+    {
+        lock (_db)
+        {
+            if (!_derived.TryAdd(key, jpeg)) return;
+            _derivedOrder.Enqueue(key);
+            while (_derived.Count > DerivedCacheLimit)
+                _derived.Remove(_derivedOrder.Dequeue());
+        }
+    }
+
+    /// <summary>原图没了 / 整个文件夹要重来的时候，内存里的中间结果也一起作废</summary>
+    private void ForgetDerived()
+    {
+        lock (_db)
+        {
+            _derived.Clear();
+            _derivedOrder.Clear();
+        }
+    }
+
+    /// <summary>
+    /// 后台批量预生成缩略图。只做入库的那一档，中/小真要看了再缩。
+    /// 按新到旧填，填到预算的 85% 就停——一万张的图库全做一遍要几分钟，
+    /// 而其中大半根本没人翻到，不如让它们等真的要看了再做。
+    ///
+    /// 每做一张就核一次余额，不能攒一批再看：这里填的顺序是新到旧，
+    /// 最后收尾的 PruneToBudget 按 created_at 淘汰，正好会把刚做好的
+    /// 那批「最新的」当成最老的删掉——顺序一拧，等于白做
+    /// </summary>
     public void PreGenerateAll(string[] paths)
     {
-        foreach (var path in paths)
+        PruneToBudget();   // 先把已有的收进预算里
+
+        long target = (long)(_budgetBytes * PruneTargetRatio);
+
+        foreach (var path in paths.OrderByDescending(SafeLastWrite))
         {
-            try
-            {
-                foreach (var key in Sizes.Keys)
-                    GetBase64(path, key);
-            }
+            if (StoredBytes() >= target) break;
+
+            try { GetBase64(path, StoredSizeKey); }
             catch { }
         }
     }
 
-    /// <summary>清理孤立记录（原图已删除）</summary>
-    public void CleanOrphans()
+    private static DateTime SafeLastWrite(string path)
+    {
+        try { return File.GetLastWriteTimeUtc(path); }
+        catch { return DateTime.MinValue; }
+    }
+
+    /// <summary>库里缩略图一共占多少字节。按 BLOB 实际长度算，不含文件的空闲空间</summary>
+    public long StoredBytes()
+    {
+        lock (_db) { return StoredBytesLocked(); }
+    }
+
+    private long StoredBytesLocked()
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT COALESCE(SUM(LENGTH(thumb_blob)), 0) FROM thumb_data";
+        return Convert.ToInt64(cmd.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// 超过上限就从最老的开始删，一直腾到 85% 以下再停。
+    /// 只删缩略图，原图一张都不碰——删掉的以后被翻到时会重新做一张
+    /// </summary>
+    public int PruneToBudget()
+    {
+        int removed = 0;
+        lock (_db)
+        {
+            long used = StoredBytesLocked();
+            if (used <= _budgetBytes) return 0;
+
+            long target = (long)(_budgetBytes * PruneTargetRatio);
+            var victims = new List<string>();
+            using (var cmd = _conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT source_path, LENGTH(thumb_blob) FROM thumb_data ORDER BY created_at ASC";
+                using var reader = cmd.ExecuteReader();
+                while (used > target && reader.Read())
+                {
+                    used -= reader.GetInt64(1);
+                    victims.Add(reader.GetString(0));
+                }
+            }
+
+            using var tx = _conn.BeginTransaction();
+            foreach (string path in victims)
+            {
+                using var del = _conn.CreateCommand();
+                del.Transaction = tx;
+                del.CommandText = "DELETE FROM thumb_data WHERE source_path = @p";
+                del.Parameters.AddWithValue("@p", path);
+                del.ExecuteNonQuery();
+            }
+            tx.Commit();
+            removed = victims.Count;
+        }
+
+        // 内存里那几张缩出来的中/小图跟着作废，不然淘汰了还从内存递出去
+        if (removed > 0) ForgetDerived();
+        return removed;
+    }
+
+    /// <summary>
+    /// 缩略图全清，再 VACUUM 把文件真的缩回去——设置页的「刷新缓存」用这个。
+    /// 只 DELETE 的话空间留在文件里等复用，Minagi 看着大小不变会以为没生效；
+    /// 清空之后跑 VACUUM 最划算，文件直接回到几十 KB，再跟着重新生成慢慢长
+    /// </summary>
+    public void ClearAllThumbnails()
     {
         lock (_db)
         {
-            var stale = new List<(string path, string key)>();
-            using (var cmd = _conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT source_path, size_key FROM thumb_data";
-                using var reader = cmd.ExecuteReader();
-                while (reader.Read())
-                {
-                    string p = reader.GetString(0);
-                    if (!File.Exists(p))
-                        stale.Add((p, reader.GetString(1)));
-                }
-            }
-            foreach (var (p, k) in stale)
-            {
-                using var del = _conn.CreateCommand();
-                del.CommandText = "DELETE FROM thumb_data WHERE source_path = @p AND size_key = @k";
-                del.Parameters.AddWithValue("@p", p);
-                del.Parameters.AddWithValue("@k", k);
-                del.ExecuteNonQuery();
-            }
+            using var cmd = _conn.CreateCommand();
+            // WAL 模式下 VACUUM 的新内容先落在 -wal 里，主文件的尺寸要等
+            // checkpoint 才跟着变。不补这一句的话，用户点完看文件大小会以为没生效
+            cmd.CommandText = """
+                DELETE FROM thumb_data;
+                VACUUM;
+                PRAGMA wal_checkpoint(TRUNCATE);
+                """;
+            cmd.ExecuteNonQuery();
         }
+        ForgetDerived();
     }
 
     /// <summary>从缓存加载画廊列表</summary>
@@ -368,6 +547,7 @@ public class ThumbnailCache : IDisposable
                 // 界面上看不见它，下次全量扫描再清
             }
         }
+        ForgetDerived();
     }
 
     public void InvalidateFolder(string folder)
@@ -387,6 +567,7 @@ public class ThumbnailCache : IDisposable
             cmd2.Parameters.AddWithValue("@p", EscapeLike(folder.TrimEnd('\\', '/')) + "\\%");
             cmd2.ExecuteNonQuery();
         }
+        ForgetDerived();
     }
 
     /// <summary>路径里真出现 % 或 _ 的话，LIKE 会把它当通配符——先转义掉</summary>

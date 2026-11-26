@@ -42,7 +42,7 @@ ForgeSide only supports launching and managing <a href="https://github.com/Haomi
 
 ### 🗂️ Gallery Browser
 - Automatically scans the Forge NEO output directory for PNG / JPEG / WebP images; new ones appear at the top as NEO writes them, with no manual refresh
-- Three thumbnail sizes (small/medium/large), generated asynchronously in the background
+- Three thumbnail sizes (small/medium/large), generated on demand in the background — the cache keeps one size per image and stays under 100 MB
 - Multi-tag search (comma-separated, order-independent)
 - Double-click to open in default image viewer
 - Drag images out of the gallery to external locations (folders, editors)
@@ -181,6 +181,9 @@ The `publish` folder is ready to distribute. The .NET 10 Desktop Runtime and Web
 - ⏱️ NEO is launched with `--log-startup`, so every startup stage reports its own timing in the console — when a launch is slow, the culprit is right there
 - 🐛 Fixed NEO failing to start when it asks for "Press Enter" after a version change, since ForgeSide has no console to press it in; the upgrade now also warns that the next launch re-checks dependencies
 - 🧹 The thumbnail cache cleans itself: thumbnails of deleted images no longer sit in the database forever, and an unmounted drive no longer wipes that drive's cache by mistake
+- 🖼️ Thumbnails are now made on demand, in the background — only the images you scroll to get built, so browsing a huge gallery no longer stutters
+- 💾 The cache stores one large size and derives the medium/small ones from it; a 100 MB cap evicts the oldest thumbnails first, so it can no longer grow without bound
+- 🔄 The Settings button formerly labelled "Clear cache" only removed orphan rows; it is now "Rebuild cache" and really empties and rebuilds the database after confirmation, with the file shrinking back too
 
 ### V1.5
 

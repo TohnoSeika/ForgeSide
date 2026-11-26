@@ -57,8 +57,10 @@ public class BridgeHost
     public string ScanGallery() => _form.ScanGallery();
     public string SearchGallery(string query) => _form.SearchGallery(query);
     public string GetGalleryMeta(string path) => _form.GetGalleryMeta(path);
-    public string GetThumbBase64(string imagePath, string sizeKey) => _form.GetThumbBase64(imagePath, sizeKey);
-    public void CleanThumbOrphans() => _form.Invoke(() => _form.CleanThumbOrphans());
+
+    // 同样不套 _form.Invoke：页面要缩略图时得立刻拿到控制权回自己的渲染循环，
+    // 真正的生成丢给后台，做完再从 forgeSide_onThumbReady 送回去
+    public void RequestThumb(string imagePath, string sizeKey) => _form.RequestThumb(imagePath, sizeKey);
     public void PreGenerateThumbnails(string jsonPaths) => _form.Invoke(() => _form.PreGenerateThumbnails(jsonPaths));
     public void RefreshGalleryFolder(string folder) => _form.Invoke(() => _form.RefreshGalleryFolder(folder));
     public void RefreshGallery() => _form.Invoke(() => _form.RefreshGallery());

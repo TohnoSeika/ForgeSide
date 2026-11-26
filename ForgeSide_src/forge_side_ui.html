@@ -323,6 +323,20 @@
   .gallery-thumb:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
   .gallery-thumb.selected { border-color: var(--accent-deep); box-shadow: 0 0 0 3px var(--accent-glow); }
   .gallery-thumb img { height: 100%; width: auto; display: block; }
+  /* 缩略图还在后台做：铺一块会轻轻呼吸的底色，不闪不跳 */
+  .gallery-thumb img.thumb-pending {
+    width: 100%;
+    background: linear-gradient(100deg, var(--border-light) 30%, var(--card-hover) 50%, var(--border-light) 70%);
+    background-size: 220% 100%;
+    animation: thumb-wait 1.8s ease-in-out infinite;
+  }
+  @keyframes thumb-wait {
+    from { background-position: 110% 0; }
+    to   { background-position: -110% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gallery-thumb img.thumb-pending { animation: none; }
+  }
   .gallery-thumb-placeholder {
     flex-shrink: 0; border-radius: var(--radius-sm); background: var(--border-light);
   }
@@ -1127,6 +1141,9 @@
       <div id="galleryFolderList">
         <div class="sh" style="margin-bottom:8px;" data-i18n="settings.gallery_empty">尚未添加任何文件夹</div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+        <button class="btn-sm" onclick="rebuildThumbCache()" data-i18n="settings.gallery_rebuild">🔄 刷新缓存</button>
+      </div>
     </div>
 
     <div class="sg">
@@ -1581,7 +1598,7 @@
       'settings.gallery': '图库文件夹',
       'settings.gallery_empty': '尚未添加任何文件夹',
       'settings.gallery_refresh': '🔄 刷新此文件夹',
-      'settings.gallery_clear': '🗑 清除缓存',
+      'settings.gallery_rebuild': '🔄 刷新缓存',
       'settings.gallery_hint': '基于对运行效率的考量，目前不支持添加其他文件夹路径。文件夹图片越多，刷新速度越慢。',
       'settings.sysinfo': '系统信息',
       'settings.sysinfo_btn': '📋 查看系统信息',
@@ -1618,8 +1635,8 @@
       'confirm.refresh_fail': '刷新失败：{0}',
       'confirm.refresh_folder': '确定要刷新此文件夹吗？\n「{0}」',
       'confirm.refresh_folder_done': '已刷新！缩略图正在后台生成。',
-      'confirm.clear_cache': '确定要清除所有缩略图缓存吗？\n清除后需要重新「刷新全部」才能显示图片。',
-      'confirm.clear_done': '缓存已清除。\n请点击「刷新全部」重新扫描。',
+      'confirm.rebuild_cache': '确定要按当前输出目录重建缩略图缓存吗？\n已有的缩略图会清空，再按大尺寸重新生成。',
+      'confirm.rebuild_done': '缩略图缓存已重建。\n新的缩略图会陆续生成。',
       'confirm.remove_folder': '确定要移除该图库文件夹吗？\n「{0}」\n不会删除原文件，仅从 ForgeSide 中移除。',
       'confirm.upgrade': '确定升级/更换到此版本吗？',
       'confirm.same_ver': '不能在相同版本间切换！',
@@ -1737,7 +1754,7 @@
       'settings.gallery': '圖庫資料夾',
       'settings.gallery_empty': '尚未添加任何資料夾',
       'settings.gallery_refresh': '🔄 重新整理此資料夾',
-      'settings.gallery_clear': '🗑 清除快取',
+      'settings.gallery_rebuild': '🔄 重新整理快取',
       'settings.gallery_hint': '基於對運行效率的考量，目前不支援添加其他資料夾路徑。資料夾圖片越多，重新整理速度越慢。',
       'settings.sysinfo': '系統資訊',
       'settings.sysinfo_btn': '📋 查看系統資訊',
@@ -1769,8 +1786,8 @@
       'confirm.refresh_fail': '重新整理失敗：{0}',
       'confirm.refresh_folder': '確定要重新整理此資料夾嗎？\n「{0}」',
       'confirm.refresh_folder_done': '已重新整理！縮圖正在背景生成。',
-      'confirm.clear_cache': '確定要清除所有縮圖快取嗎？\n清除後需要重新「重新整理全部」才能顯示圖片。',
-      'confirm.clear_done': '快取已清除。\n請點擊「重新整理全部」重新掃描。',
+      'confirm.rebuild_cache': '確定要依目前輸出目錄重建縮圖快取嗎？\n現有的縮圖會清空，再以大尺寸重新產生。',
+      'confirm.rebuild_done': '縮圖快取已重建。\n新的縮圖會陸續產生。',
       'confirm.remove_folder': '確定要移除此圖庫資料夾嗎？\n「{0}」\n不會刪除原檔案，僅從 ForgeSide 中移除。',
       'confirm.upgrade': '確定升級/更換到此版本嗎？',
       'confirm.same_ver': '不能在相同版本間切換！',
@@ -1884,7 +1901,7 @@
       'settings.gallery': 'Gallery Folders',
       'settings.gallery_empty': 'No folders added yet',
       'settings.gallery_refresh': '🔄 Refresh this folder',
-      'settings.gallery_clear': '🗑 Clear Cache',
+      'settings.gallery_rebuild': '🔄 Rebuild Cache',
       'settings.gallery_hint': 'For performance reasons, additional folder paths are not supported. The more images a folder contains, the slower the refresh.',
       'settings.sysinfo': 'System Info',
       'settings.sysinfo_btn': '📋 View System Info',
@@ -1916,8 +1933,8 @@
       'confirm.refresh_fail': 'Refresh failed: {0}',
       'confirm.refresh_folder': 'Refresh this folder?\n「{0}」',
       'confirm.refresh_folder_done': 'Refreshed! Thumbnails are being generated.',
-      'confirm.clear_cache': 'Clear all thumbnail caches?\nYou will need to refresh to see images again.',
-      'confirm.clear_done': 'Cache cleared.\nClick "Refresh All" to rescan.',
+      'confirm.rebuild_cache': 'Rebuild the thumbnail cache from the current output folder?\nExisting thumbnails will be cleared and regenerated at large size.',
+      'confirm.rebuild_done': 'Thumbnail cache rebuilt.\nNew thumbnails will appear as they are generated.',
       'confirm.remove_folder': 'Remove this gallery folder?\n「{0}」\nThe source files will not be deleted.',
       'confirm.upgrade': 'Upgrade/switch to this version?',
       'confirm.same_ver': 'Cannot switch to the same version!',
@@ -2031,7 +2048,7 @@
       'settings.gallery': 'ギャラリーフォルダ',
       'settings.gallery_empty': 'フォルダが追加されていません',
       'settings.gallery_refresh': '🔄 このフォルダを更新',
-      'settings.gallery_clear': '🗑 キャッシュ削除',
+      'settings.gallery_rebuild': '🔄 キャッシュを再構築',
       'settings.gallery_hint': '実行効率の観点から、他のフォルダパスの追加はサポートされていません。フォルダ内の画像が多いほど、リフレッシュ速度が遅くなります。',
       'settings.sysinfo': 'システム情報',
       'settings.sysinfo_btn': '📋 システム情報を表示',
@@ -2063,8 +2080,8 @@
       'confirm.refresh_fail': '更新失敗：{0}',
       'confirm.refresh_folder': 'このフォルダを更新しますか？\n「{0}」',
       'confirm.refresh_folder_done': '更新しました！サムネイルを生成中です。',
-      'confirm.clear_cache': 'サムネイルキャッシュをすべて削除しますか？\n削除後、「全て更新」を実行するまで画像は表示されません。',
-      'confirm.clear_done': 'キャッシュを削除しました。\n「全て更新」をクリックして再スキャンしてください。',
+      'confirm.rebuild_cache': '現在の出力フォルダからサムネイルキャッシュを再構築しますか？\n既存のサムネイルは削除され、大サイズで作り直されます。',
+      'confirm.rebuild_done': 'サムネイルキャッシュを再構築しました。\n新しいサムネイルは順次生成されます。',
       'confirm.remove_folder': 'このギャラリーフォルダを削除しますか？\n「{0}」\n元のファイルは削除されません。',
       'confirm.upgrade': 'このバージョンに切り替えますか？',
       'confirm.same_ver': '同じバージョンには切り替えられません！',
@@ -2833,6 +2850,7 @@
   var _galleryRowEls = {};      // 行号 → 已经建好的 DOM，滚回来直接复用
   var _selectedThumbEl = null;  // 当前高亮的那张，点击时只动它一个
   var _thumbSrcCache = new Map();  // "尺寸|路径" → data URI
+  var _thumbPending = {};          // 已经要过、还在后台做的缩略图，别重复下单
 
   function applyGallerySize(size) {
     var sel = document.getElementById('gallerySize');
@@ -2885,11 +2903,27 @@
     } catch(e) {}
   }
 
-  function forgeSide_onThumbnailsReady() {
-    // 缩略图是后台慢慢生成的，先前渲染时拿到的多半是原图兜底地址。
-    // 把内存缓存丢掉，让已经建好的行重新取一次真的缩略图
-    _thumbSrcCache.clear();
-    if (activeTab === 2 && galleryImages.length > 0) rebuildRows();
+  // C# 回调：一张缩略图做好了。路径和尺寸都得核对再往页面上贴——
+  // 用户可能已经换了缩略图尺寸，或者那一行早就滚出视野被收掉了
+  function forgeSide_onThumbReady(path, sizeKey, dataUri) {
+    var key = sizeKey + '|' + path;
+    delete _thumbPending[key];
+
+    var src = dataUri || originalSrc(path);   // 生成失败就退回原图，至少让人看得见
+    rememberThumbSrc(key, src);
+
+    if (sizeKey !== (SZ_KEY[settings.thumbnailSize] || 'medium')) return;
+
+    var grid = document.getElementById('galleryGrid');
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.gallery-thumb[data-path]');
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute('data-path') !== path) continue;
+      var picture = cards[i].querySelector('img.thumb-pending');
+      if (!picture) continue;
+      picture.classList.remove('thumb-pending');
+      picture.src = src;
+    }
   }
 
   // C# 回调：输出目录里多了或少了图（NEO 一边出图，这边一边收到）
@@ -3087,35 +3121,52 @@
     var picture = document.createElement('img');
     picture.alt = '';
     picture.loading = 'lazy';
-    picture.src = thumbSrc(img.path);
+
+    var src = thumbSrc(img.path);
+    if (src) picture.src = src;
+    else picture.className = 'thumb-pending';   // 等后台做完，先铺一块会呼吸的底色
     return picture;
   }
 
-  /// 缩略图地址。取过一次就记住——GetThumbBase64 是同步跨进程调用，
-  /// 每滚一下都重新问一遍，再快的机器也扛不住。
+  /// 缩略图地址。命中内存缓存直接给；没命中就排一次后台请求，先返回空串。
   /// 缓存满了先扔最久没用的那个（Map 按插入顺序排，队首就是最旧的）
   function thumbSrc(path) {
-    var key = (SZ_KEY[settings.thumbnailSize] || 'medium') + '|' + path;
+    var sizeKey = SZ_KEY[settings.thumbnailSize] || 'medium';
+    var key = sizeKey + '|' + path;
+
     var cached = _thumbSrcCache.get(key);
     if (cached !== undefined) {
-      _thumbSrcCache.delete(key);
+      _thumbSrcCache.delete(key);       // 重新插到队尾，表示刚用过
       _thumbSrcCache.set(key, cached);
       return cached;
     }
 
-    var src = fetchThumbSrc(path);
-    if (_thumbSrcCache.size >= THUMB_CACHE_MAX) _thumbSrcCache.delete(_thumbSrcCache.keys().next().value);
-    _thumbSrcCache.set(key, src);
-    return src;
+    // 桥断了也得让人看见东西，那就直接用原图
+    return requestThumb(path, sizeKey) ? '' : originalSrc(path);
   }
 
-  /// 真的去要一次；要不到就退回原图，至少让用户看见东西
-  function fetchThumbSrc(path) {
-    var sizeKey = SZ_KEY[settings.thumbnailSize] || 'medium';
+  /// 向 C# 要一张缩略图。它立刻返回，结果从 forgeSide_onThumbReady 回来
+  function requestThumb(path, sizeKey) {
+    var key = sizeKey + '|' + path;
+    if (_thumbPending[key]) return true;   // 已经在做了，别再下一单
+    _thumbPending[key] = true;
     try {
-      var src = chrome.webview.hostObjects.sync.forgeSide.GetThumbBase64(path, sizeKey);
-      if (src) return src;
-    } catch(e) {}
+      chrome.webview.hostObjects.sync.forgeSide.RequestThumb(path, sizeKey);
+      return true;
+    } catch(e) {
+      delete _thumbPending[key];
+      return false;
+    }
+  }
+
+  function rememberThumbSrc(key, src) {
+    if (!src) return;
+    if (!_thumbSrcCache.has(key) && _thumbSrcCache.size >= THUMB_CACHE_MAX)
+      _thumbSrcCache.delete(_thumbSrcCache.keys().next().value);
+    _thumbSrcCache.set(key, src);
+  }
+
+  function originalSrc(path) {
     return 'file:///' + encodeURI(path.replace(/\\/g, '/')).replace(/#/g, '%23');
   }
 
@@ -3293,7 +3344,6 @@
         + '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text);word-break:break-all;line-height:1.5;margin-bottom:8px;" title="' + escAttr(f) + '">' + escHtml(f) + '</div>'
         + '<div style="display:flex;gap:6px;margin-bottom:6px;">'
         + '<button class="btn-sm" data-gallery-refresh="' + escAttr(f) + '">' + t('settings.gallery_refresh') + '</button>'
-        + '<button class="btn-sm" onclick="clearThumbCache()" style="margin-left:auto;">' + t('settings.gallery_clear') + '</button>'
         + '</div>'
         + '<div style="font-size:10px;color:var(--accent);line-height:1.4;">' + t('settings.gallery_hint') + '</div>'
         + '</div>';
@@ -3310,7 +3360,12 @@
       // 全量扫描要把每个文件夹走一遍、写缓存，再把缩略图生成排出去。
       // 以前是同步等它做完，这一段路上窗口整个僵着
       forgeSideLongTask('refreshGallery')
-        .then(function() { showConfirm(t('confirm.refresh_done'), null); })
+        .then(function() {
+          // 缩略图没有「全部做好了再喊一声」那一步了，重排一次让页面按需重新要
+          dropThumbSrcCache();
+          loadGallery();
+          showConfirm(t('confirm.refresh_done'), null);
+        })
         .catch(function(e) { showConfirm(t('confirm.refresh_fail', e.message), null); });
     });
   }
@@ -3320,18 +3375,25 @@
       forgeSideLongTask('refreshGalleryFolder', folder)
         .then(function() {
           dropThumbSrcCache();
+          loadGallery();
           showConfirm(t('confirm.refresh_folder_done'), null);
         })
         .catch(function(e) { showConfirm(t('confirm.refresh_fail', e.message), null); });
     });
   }
 
-  function clearThumbCache() {
-    showConfirm(t('confirm.clear_cache'), function() {
-      try { chrome.webview.hostObjects.sync.forgeSide.CleanThumbOrphans(); }
-      catch(e) { showConfirm(t('confirm.refresh_fail', e.message), null); return; }
-      dropThumbSrcCache();
-      showConfirm(t('confirm.clear_done'), null);
+  // 按当前输出目录重建缩略图缓存：清空旧缩略图 → 重新扫描 → 重新生成大尺寸。
+  // 以前这颗按钮叫「清除缓存」，实际只清孤儿，和弹窗文案对不上；
+  // 现在它真的把库清空重建，顺手 VACUUM 把空间收回来
+  function rebuildThumbCache() {
+    showConfirm(t('confirm.rebuild_cache'), function() {
+      forgeSideLongTask('rebuildThumbCache')
+        .then(function() {
+          dropThumbSrcCache();
+          loadGallery();
+          showConfirm(t('confirm.rebuild_done'), null);
+        })
+        .catch(function(e) { showConfirm(t('confirm.refresh_fail', e.message), null); });
     });
   }
 

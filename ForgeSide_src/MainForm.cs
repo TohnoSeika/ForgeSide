@@ -1097,7 +1097,7 @@ public class MainForm : Form
     /// 为什么不用 WebView2 的异步代理：那个「C# 方法返回 Task」的支持是
     /// 2024 年才进 SDK 的，桃华在这儿没法验证运行时认不认；而
     /// ExecuteScriptAsync 回调这条通道这个项目里早就在用了
-    /// （PushConsole、forgeSide_onThumbnailsReady），用熟的更放心。
+    /// （PushConsole、forgeSide_onThumbReady），用熟的更放心。
     /// </summary>
     public void RequestLongTask(string requestId, string taskName, string arg)
     {
@@ -1109,7 +1109,7 @@ public class MainForm : Form
         // 这个 List，快照必须在这儿拍。丢到后台再读的话，用户正好在设置页加文件夹，
         // 那就是一次并发读写。
         // （刷新单个文件夹不用快照——它只认传进来的那一个路径，不碰这个列表）
-        var folders = taskName is "searchGallery" or "refreshGallery" or "scanGalleryIncremental"
+        var folders = taskName is "searchGallery" or "refreshGallery" or "scanGalleryIncremental" or "rebuildThumbCache"
             ? ActiveGalleryFolders
             : null;
 
@@ -1122,6 +1122,7 @@ public class MainForm : Form
             "refreshGallery"       => () => { RefreshGalleryIn(folders!); return "{}"; },
             "refreshGalleryFolder" => () => { RefreshGalleryFolder(arg); return "{}"; },
             "scanGalleryIncremental" => () => ScanGalleryIncremental(folders!),
+            "rebuildThumbCache"    => () => { RebuildThumbnailCacheIn(folders!); return "{}"; },
             _                      => () => JsonSerializer.Serialize(new { error = Lang.T("task.unknown_long", taskName) }),
         };
 
@@ -1246,6 +1247,16 @@ public class MainForm : Form
 
         if (allPaths.Count > 0)
             PreGenerateThumbnails(JsonSerializer.Serialize(allPaths));
+    }
+
+    /// <summary>
+    /// 按当前图库目录重建缩略图缓存：清空旧图并收缩数据库，再按磁盘现状重扫。
+    /// 新的缩略图由 RefreshGalleryIn 排到后台慢慢生成
+    /// </summary>
+    private void RebuildThumbnailCacheIn(List<string> folders)
+    {
+        _thumbCache?.ClearAllThumbnails();
+        RefreshGalleryIn(folders);
     }
 
     /// <summary>刷新指定文件夹（清除缓存 + 重新扫描 + 生成缩略图）</summary>
@@ -1374,10 +1385,8 @@ public class MainForm : Form
 
         if (changed) NotifyGalleryChanged();
 
-        // 缩略图在后台慢慢出。出完了 C# 会再喊一次 onThumbnailsReady，
-        // 那时候已经建好的行会换成真的缩略图
-        if (added.Count > 0) PreGenerateThumbnails(JsonSerializer.Serialize(added));
-
+        // 缩略图不再提前做了：页面滚到哪张就异步要哪张，
+        // NEO 一口气出十张也不会在这儿先占上一轮后台
         if (retryLater) ScheduleGalleryFlush(1200);
     }
 
@@ -1528,11 +1537,91 @@ public class MainForm : Form
         return SerializeParams(p);
     }
 
-    /// <summary>获取缩略图 Base64 Data URI（sizeKey: small/medium/large）</summary>
-    public string GetThumbBase64(string imagePath, string sizeKey)
+    // ═══ 异步缩略图 ═══
+    //
+    // 以前这里是同步桥：页面要一张就当场解码、缩放、编码，UI 线程全程陪着。
+    // 一屏十几张缓存没命中，窗口就能僵上半秒。现在页面只把「要哪张」丢过来，
+    // C# 在后台慢慢做，做完再调 forgeSide_onThumbReady 把图补回页面上
+
+    private readonly object _thumbGate = new();
+    private readonly HashSet<string> _thumbQueued = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<(string Path, string SizeKey)> _thumbQueue = new();
+    private bool _thumbWorkerRunning;
+
+    /// <summary>页面滚得比生成快时，队列最多攒这么多，再多的只能先放手</summary>
+    private const int MaxThumbQueue = 512;
+
+    /// <summary>页面要一张缩略图。立刻返回，结果走 forgeSide_onThumbReady</summary>
+    public void RequestThumb(string path, string sizeKey)
     {
-        if (_thumbCache == null) return "";
-        return _thumbCache.GetBase64(imagePath, sizeKey);
+        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(sizeKey)) return;
+
+        // 缓存没起来也得回一声，不然页面那块灰底就一直转下去了
+        if (_thumbCache == null) { DeliverThumb(path, sizeKey, ""); return; }
+
+        string key = sizeKey + "|" + path;
+        (string Path, string SizeKey)? dropped = null;
+
+        lock (_thumbGate)
+        {
+            if (!_thumbQueued.Add(key)) return;
+
+            if (_thumbQueue.Count >= MaxThumbQueue)
+            {
+                var oldest = _thumbQueue.Dequeue();
+                _thumbQueued.Remove(oldest.SizeKey + "|" + oldest.Path);
+                dropped = oldest;
+            }
+
+            _thumbQueue.Enqueue((path, sizeKey));
+            if (_thumbWorkerRunning) return;
+            _thumbWorkerRunning = true;
+        }
+
+        // 被挤掉的那张也得回一声。不回的话页面一直等这个回调，
+        // 那块灰底就永远停在那儿了
+        if (dropped is { } victim) DeliverThumb(victim.Path, victim.SizeKey, "");
+
+        _ = Task.Run(ThumbWorkerLoop);
+    }
+
+    private void ThumbWorkerLoop()
+    {
+        int sincePrune = 0;
+
+        while (true)
+        {
+            (string Path, string SizeKey) job;
+            lock (_thumbGate)
+            {
+                if (_thumbQueue.Count == 0) { _thumbWorkerRunning = false; return; }
+                job = _thumbQueue.Dequeue();
+            }
+
+            string dataUri = "";
+            try { dataUri = _thumbCache?.GetBase64(job.Path, job.SizeKey) ?? ""; }
+            catch { }
+
+            lock (_thumbGate) { _thumbQueued.Remove(job.SizeKey + "|" + job.Path); }
+            DeliverThumb(job.Path, job.SizeKey, dataUri);
+
+            // 不每张都去算总大小，但也不能攒太多——一次三十来张，
+            // 越过 100MB 的那一点点最多也就一两 MB
+            if (++sincePrune >= 32)
+            {
+                sincePrune = 0;
+                _thumbCache?.PruneToBudget();
+            }
+        }
+    }
+
+    private void DeliverThumb(string path, string sizeKey, string dataUri)
+    {
+        // 路径里反斜杠、引号都可能有，拼 JS 之前先老老实实转义
+        string args = JsonSerializer.Serialize(path) + ","
+                    + JsonSerializer.Serialize(sizeKey) + ","
+                    + JsonSerializer.Serialize(dataUri);
+        SafeInvoke(() => _webView?.CoreWebView2?.ExecuteScriptAsync($"forgeSide_onThumbReady({args})"));
     }
 
     /// <summary>
@@ -1810,11 +1899,6 @@ public class MainForm : Form
 
         return JsonSerializer.Serialize(info);
     }
-    public void CleanThumbOrphans()
-    {
-        _thumbCache?.CleanOrphans();
-    }
-
     /// <summary>启动原生文件拖放（JS 无法直接拖出本地文件，需要 C# 通过 DoDragDrop 实现）</summary>
     public void StartFileDrag(string filePath)
     {
@@ -2095,7 +2179,11 @@ public class MainForm : Form
         }
     }
 
-    /// <summary>后台批量预生成三档缩略图</summary>
+    /// <summary>
+    /// 后台批量预生成缩略图。只给「刷新」和「重建缓存」用——
+    /// 平时新图是页面滚到才异步要的，不在这儿先做完。
+    /// 预生成自己也守着预算，填满就停
+    /// </summary>
     public void PreGenerateThumbnails(string jsonPaths)
     {
         string[]? paths;
@@ -2103,14 +2191,7 @@ public class MainForm : Form
         catch { return; }
         if (paths == null || paths.Length == 0) return;
 
-        Task.Run(() =>
-        {
-            _thumbCache?.PreGenerateAll(paths);
-            BeginInvoke(() =>
-            {
-                _webView.CoreWebView2?.ExecuteScriptAsync("forgeSide_onThumbnailsReady()");
-            });
-        });
+        Task.Run(() => _thumbCache?.PreGenerateAll(paths));
     }
 
     /// <summary>添加图库文件夹</summary>
