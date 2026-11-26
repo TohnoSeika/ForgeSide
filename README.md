@@ -175,15 +175,17 @@ The `publish` folder is ready to distribute. The .NET 10 Desktop Runtime and Web
 
 ### V1.5.1
 
-- 🖼️ The gallery refreshes itself: images NEO writes appear at the top on their own, no trip to Settings needed. It updates in place while you're browsing, shows a small dot on the Gallery tab while you're elsewhere, and runs an incremental scan when you switch back — so files you dropped in by hand are picked up too
-- 🌐 The proxy toggle no longer routes everything unconditionally: the proxy port is probed before NEO starts, and when nothing is listening that launch connects directly — the console reports which path it took
-- 🐛 Fixed the flood of "connection refused" errors during NEO startup when the proxy app wasn't running yet, which also broke package installs that would have worked fine against a direct mirror
-- ⏱️ NEO is launched with `--log-startup`, so every startup stage reports its own timing in the console — when a launch is slow, the culprit is right there
-- 🐛 Fixed NEO failing to start when it asks for "Press Enter" after a version change, since ForgeSide has no console to press it in; the upgrade now also warns that the next launch re-checks dependencies
-- 🧹 The thumbnail cache cleans itself: thumbnails of deleted images no longer sit in the database forever, and an unmounted drive no longer wipes that drive's cache by mistake
-- 🖼️ Thumbnails are now made on demand, in the background — only the images you scroll to get built, so browsing a huge gallery no longer stutters
-- 💾 The cache stores one large size and derives the medium/small ones from it; a 100 MB cap evicts the oldest thumbnails first, so it can no longer grow without bound
-- 🔄 The Settings button formerly labelled "Clear cache" only removed orphan rows; it is now "Rebuild cache" and really empties and rebuilds the database after confirmation, with the file shrinking back too
+- 🖼️ Gallery auto-refresh: new NEO outputs appear at the top, and switching back to the tab runs an incremental scan for hand-added files
+- 🌐 The proxy toggle follows actual connectivity: the port is probed before launch, falls back to a direct connection when nothing is listening, and the console reports which path was used
+- 🐛 Fixed "connection refused" floods during the extension dependency check (install.py) with no proxy running, which also broke installs that would have worked over a direct mirror
+- ⏱️ NEO launches with `--log-startup`, printing per-stage timings to the console
+- 🐛 Fixed NEO failing to start when it waits for "Press Enter" after a version change
+- 🧹 Thumbnail cache self-cleanup: thumbnails are reclaimed when originals are deleted, and an unmounted drive is no longer wiped by mistake
+- 🖼️ Thumbnails are generated on demand in the background once scrolled into view, so large galleries no longer stutter
+- 💾 The cache stores one large size and downscales medium/small on demand; capped at 100 MB with least-recently-used eviction
+- 🔄 Settings "Clear cache" is now "Rebuild cache": it empties and rebuilds the database, and the file shrinks back
+- 🖼️ Landscape images now sit 1/2/3 per row (large/medium/small) instead of taking a whole row
+- 🌙 Dark mode is now the default; light mode remains one click away in Settings
 
 ### V1.5
 
